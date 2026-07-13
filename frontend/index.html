@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Group Finder</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { background: white; border-radius: 12px; border: 1px solid #e0e0d8; padding: 36px; width: 100%; max-width: 420px; }
+    .logo { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
+    .logo span { color: #185fa5; }
+    .tagline { font-size: 13px; color: #888; margin-bottom: 28px; }
+    .tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 1px solid #e0e0d8; }
+    .tab { flex: 1; padding: 10px; font-size: 14px; text-align: center; cursor: pointer; color: #888; border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; border-top: none; border-left: none; border-right: none; }
+    .tab.active { color: #185fa5; border-bottom-color: #185fa5; font-weight: 500; }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; }
+    input, select { width: 100%; padding: 9px 12px; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 14px; color: #1a1a1a; background: white; outline: none; }
+    input:focus, select:focus { border-color: #185fa5; }
+    .btn { width: 100%; padding: 10px; background: #185fa5; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 6px; }
+    .btn:hover { background: #0c447c; }
+    .error { background: #fff0f0; color: #a32d2d; font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; display: none; }
+    .success { background: #f0fff4; color: #276749; font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; display: none; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">Study Group <span>Finder</span></div>
+  <div class="tagline">Find your people. Ace your units.</div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('login')">Log in</button>
+    <button class="tab" onclick="switchTab('register')">Register</button>
+  </div>
+
+  <!-- LOGIN PANEL -->
+  <div class="panel active" id="panel-login">
+    <div class="error" id="login-error"></div>
+    <div class="success" id="login-success"></div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="you@usiu.ac.ke" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="Your password" />
+    </div>
+    <button class="btn" onclick="handleLogin()">Log in</button>
+  </div>
+
+  <!-- REGISTER PANEL -->
+  <div class="panel" id="panel-register">
+    <div class="error" id="register-error"></div>
+    <div class="success" id="register-success"></div>
+    <div class="form-group">
+      <label>Full name</label>
+      <input type="text" id="reg-name" placeholder="Ted Wanjihia" />
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="reg-email" placeholder="you@usiu.ac.ke" />
+    </div>
+    <div class="form-group">
+      <label>Programme</label>
+      <select id="reg-programme">
+        <option value="">Select your programme</option>
+        <option>Bachelor of Science in Computer Science</option>
+        <option>Bachelor of Science in Information Technology</option>
+        <option>Bachelor of Commerce</option>
+        <option>Bachelor of Arts in Communication</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Year of study</label>
+      <select id="reg-year">
+        <option value="">Select year</option>
+        <option value="1">Year 1</option>
+        <option value="2">Year 2</option>
+        <option value="3">Year 3</option>
+        <option value="4">Year 4</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="reg-password" placeholder="Min 6 characters" />
+    </div>
+    <button class="btn" onclick="handleRegister()">Create account</button>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:3000';
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function showSuccess(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function hideMessages() {
+    document.querySelectorAll('.error, .success').forEach(el => el.style.display = 'none');
+  }
+
+  async function handleLogin() {
+    hideMessages();
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) return showError('login-error', 'Please fill in all fields.');
+    try {
+      const res = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) return showError('login-error', data.message || 'Login failed.');
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      window.location.href = 'dashboard.html';
+    } catch (err) {
+      showError('login-error', 'Cannot connect to server. Is it running?');
+    }
+  }
+
+  async function handleRegister() {
+    hideMessages();
+    const name = document.getElementById('reg-name').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const programme = document.getElementById('reg-programme').value;
+    const year_of_study = document.getElementById('reg-year').value;
+    const password = document.getElementById('reg-password').value;
+    if (!name || !email || !programme || !year_of_study || !password)
+      return showError('register-error', 'Please fill in all fields.');
+    if (password.length < 6)
+      return showError('register-error', 'Password must be at least 6 characters.');
+    try {
+      const res = await fetch(`${API}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, programme, year_of_study })
+      });
+      const data = await res.json();
+      if (!res.ok) return showError('register-error', data.message || 'Registration failed.');
+      showSuccess('register-success', 'Account created! You can now log in.');
+      setTimeout(() => switchTab('login'), 2000);
+    } catch (err) {
+      showError('register-error', 'Cannot connect to server. Is it running?');
+    }
+  }
+</script>
+</body>
+</html>
