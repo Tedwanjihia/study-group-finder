@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browse Groups — Study Group Finder</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f0; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: white; border-bottom: 1px solid #e0e0d8; }
+    .logo { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+    .logo span { color: #185fa5; }
+    .nav-links { display: flex; align-items: center; gap: 20px; }
+    .nav-link { font-size: 13px; color: #888; text-decoration: none; cursor: pointer; }
+    .nav-link.active { color: #185fa5; font-weight: 500; }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #185fa5; }
+    .main { max-width: 860px; margin: 0 auto; padding: 28px 20px; }
+    .page-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+    .page-sub { font-size: 13px; color: #888; margin-bottom: 20px; }
+    .filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .search { flex: 1; min-width: 180px; padding: 9px 12px; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 13px; color: #1a1a1a; background: white; outline: none; }
+    .search:focus { border-color: #185fa5; }
+    select { padding: 9px 12px; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 13px; color: #1a1a1a; background: white; outline: none; cursor: pointer; }
+    select:focus { border-color: #185fa5; }
+    .groups { display: flex; flex-direction: column; gap: 10px; }
+    .group-card { background: white; border: 1px solid #e0e0d8; border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .group-card:hover { border-color: #185fa5; }
+    .group-name { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+    .group-unit { font-size: 12px; color: #185fa5; margin-bottom: 8px; }
+    .group-meta { display: flex; gap: 14px; font-size: 12px; color: #888; flex-wrap: wrap; }
+    .badge-open { background: #f0fff4; color: #276749; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+    .badge-full { background: #fff0f0; color: #a32d2d; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+    .badge-member { background: #e6f1fb; color: #185fa5; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+    .btn-join { border: 1px solid #185fa5; color: #185fa5; background: white; border-radius: 8px; padding: 8px 16px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+    .btn-join:hover { background: #e6f1fb; }
+    .btn-full { border: 1px solid #e0e0d8; color: #aaa; background: white; border-radius: 8px; padding: 8px 16px; font-size: 13px; cursor: not-allowed; white-space: nowrap; }
+    .btn-member { border: 1px solid #e0e0d8; color: #aaa; background: white; border-radius: 8px; padding: 8px 16px; font-size: 13px; cursor: default; white-space: nowrap; }
+    .empty { text-align: center; padding: 40px; background: white; border-radius: 12px; border: 1px solid #e0e0d8; color: #888; font-size: 14px; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: white; padding: 12px 20px; border-radius: 8px; font-size: 13px; display: none; z-index: 999; }
+    .toast.success { background: #276749; }
+    .toast.error { background: #a32d2d; }
+    .btn { padding: 8px 16px; background: #185fa5; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; }
+    .logout { font-size: 13px; color: #e24b4a; cursor: pointer; background: none; border: none; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">Study Group <span>Finder</span></div>
+  <div class="nav-links">
+    <a class="nav-link" href="dashboard.html">Dashboard</a>
+    <span class="nav-link active">Browse groups</span>
+    <a class="nav-link" href="create-group.html">+ Create group</a>
+    <div class="avatar" id="avatar">?</div>
+    <button class="logout" onclick="logout()">Log out</button>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-title">Browse study groups</div>
+  <div class="page-sub">Find and join groups for your course units.</div>
+
+  <div class="filters">
+    <input class="search" id="search" placeholder="Search by group name..." oninput="filterGroups()" />
+    <select id="unit-filter" onchange="loadGroups()">
+      <option value="">All units</option>
+    </select>
+  </div>
+
+  <div class="groups" id="groups-container">
+    <div class="empty">Loading groups...</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = 'http://localhost:3000';
+const token = localStorage.getItem('token');
+const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+if (!token || !user) window.location.href = 'index.html';
+
+document.getElementById('avatar').textContent = user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+function logout() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  window.location.href = 'index.html';
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (type || '');
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+let allGroups = [];
+let myGroupIds = new Set();
+
+async function loadGroups() {
+  const unit = document.getElementById('unit-filter').value;
+  const url = unit ? `${API}/groups?unit=${encodeURIComponent(unit)}` : `${API}/groups`;
+  const headers = { 'Authorization': 'Bearer ' + token };
+
+  try {
+    const groupsRes = await fetch(url, { headers });
+    const groupsData = await groupsRes.json();
+
+    const myRes = await fetch(`${API}/groups/my`, { headers });
+    const myData = await myRes.json();
+
+    myGroupIds = new Set((myData.groups || []).map(g => String(g.id)));
+    allGroups = (groupsData.groups || []).map(g => ({
+      ...g,
+      isMember: myGroupIds.has(String(g.id))
+    }));
+
+    renderGroups(allGroups);
+  } catch (err) {
+    console.error('loadGroups error:', err);
+    document.getElementById('groups-container').innerHTML = '<div class="empty">Failed to load groups.</div>';
+  }
+}
+
+async function loadUnits() {
+  try {
+    const res = await fetch(`${API}/units`, { headers: { 'Authorization': 'Bearer ' + token } });
+    const data = await res.json();
+    const sel = document.getElementById('unit-filter');
+    (data.units || []).forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.code;
+      opt.textContent = u.code + ' — ' + u.name;
+      sel.appendChild(opt);
+    });
+  } catch (err) {
+    console.error('loadUnits error:', err);
+  }
+}
+
+function filterGroups() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const filtered = allGroups.filter(g => g.name.toLowerCase().includes(search));
+  renderGroups(filtered);
+}
+
+function renderGroups(groups) {
+  const gc = document.getElementById('groups-container');
+  if (!groups || groups.length === 0) {
+    gc.innerHTML = '<div class="empty">No groups found. <a href="create-group.html" style="color:#185fa5">Create one?</a></div>';
+    return;
+  }
+  gc.innerHTML = groups.map(g => {
+    const count = parseInt(g.member_count) || 0;
+    const isFull = count >= g.max_members;
+    let badge = isFull
+      ? '<span class="badge-full">Full</span>'
+      : '<span class="badge-open">Open</span>';
+    let btn = '';
+    if (g.isMember) {
+      badge = '<span class="badge-member">Joined</span>';
+      btn = '<button class="btn-member">Joined</button>';
+    } else if (isFull) {
+      btn = '<button class="btn-full" disabled>Full</button>';
+    } else {
+      btn = `<button class="btn-join" onclick="joinGroup(${g.id}, this)">Join group</button>`;
+    }
+    return `
+      <div class="group-card">
+        <div>
+          <div class="group-name">${g.name}</div>
+          <div class="group-unit">${g.unit_code} — ${g.unit_name}</div>
+          <div class="group-meta">
+            <span>👥 ${count} / ${g.max_members}</span>
+            <span>📅 ${g.schedule || 'TBD'}</span>
+            <span>📍 ${g.venue || 'TBD'}</span>
+            ${badge}
+          </div>
+        </div>
+        ${btn}
+      </div>`;
+  }).join('');
+}
+
+async function joinGroup(id, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Joining...';
+  try {
+    const res = await fetch(`${API}/groups/${id}/join`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.message, 'error');
+      btn.disabled = false;
+      btn.textContent = 'Join group';
+    } else {
+      showToast('Joined successfully!', 'success');
+      loadGroups();
+    }
+  } catch (err) {
+    showToast('Could not connect to server.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Join group';
+  }
+}
+
+loadUnits();
+loadGroups();
+</script>

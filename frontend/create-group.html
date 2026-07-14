@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Group — Study Group Finder</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f0; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: white; border-bottom: 1px solid #e0e0d8; }
+    .logo { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+    .logo span { color: #185fa5; }
+    .nav-links { display: flex; align-items: center; gap: 20px; }
+    .nav-link { font-size: 13px; color: #888; text-decoration: none; cursor: pointer; }
+    .nav-link.active { color: #185fa5; font-weight: 500; }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #185fa5; }
+    .main { max-width: 560px; margin: 0 auto; padding: 36px 20px; }
+    .page-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+    .page-sub { font-size: 13px; color: #888; margin-bottom: 28px; }
+    .card { background: white; border: 1px solid #e0e0d8; border-radius: 12px; padding: 28px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 500; }
+    input, select, textarea { width: 100%; padding: 9px 12px; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 14px; color: #1a1a1a; background: white; outline: none; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { border-color: #185fa5; }
+    textarea { resize: vertical; min-height: 80px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn { width: 100%; padding: 10px; background: #185fa5; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 8px; }
+    .btn:hover { background: #0c447c; }
+    .btn:disabled { background: #aaa; cursor: not-allowed; }
+    .error { background: #fff0f0; color: #a32d2d; font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; display: none; }
+    .success { background: #f0fff4; color: #276749; font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; display: none; }
+    .logout { font-size: 13px; color: #e24b4a; cursor: pointer; background: none; border: none; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">Study Group <span>Finder</span></div>
+  <div class="nav-links">
+    <a class="nav-link" href="dashboard.html">Dashboard</a>
+    <a class="nav-link" href="browse.html">Browse groups</a>
+    <span class="nav-link active">+ Create group</span>
+    <div class="avatar" id="avatar">?</div>
+    <button class="logout" onclick="logout()">Log out</button>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-title">Create a study group</div>
+  <div class="page-sub">Set up a group for your classmates to join.</div>
+  <div class="card">
+    <div class="error" id="error"></div>
+    <div class="success" id="success"></div>
+    <div class="form-group">
+      <label>Group name</label>
+      <input type="text" id="name" placeholder="e.g. APT3065A Study Squad" />
+    </div>
+    <div class="form-group">
+      <label>Course unit</label>
+      <select id="unit_id">
+        <option value="">Select a unit</option>
+      </select>
+    </div>
+    <div class="row">
+      <div class="form-group">
+        <label>Max members</label>
+        <select id="max_members">
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5" selected>5</option>
+          <option value="6">6</option>
+          <option value="8">8</option>
+          <option value="10">10</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Schedule</label>
+        <input type="text" id="schedule" placeholder="e.g. Mon 4pm" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Venue</label>
+      <input type="text" id="venue" placeholder="e.g. Library room 3 or Online" />
+    </div>
+    <button class="btn" id="submit-btn" onclick="createGroup()">Create group</button>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:3000';
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+  if (!token || !user) window.location.href = 'index.html';
+
+  document.getElementById('avatar').textContent = user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+  function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = 'index.html';
+  }
+
+  async function loadUnits() {
+    try {
+      const res = await fetch(`${API}/units`, { headers: { 'Authorization': 'Bearer ' + token } });
+      const data = await res.json();
+      const sel = document.getElementById('unit_id');
+      (data.units || []).forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = u.code + ' — ' + u.name;
+        sel.appendChild(opt);
+      });
+    } catch (err) { console.error(err); }
+  }
+
+  async function createGroup() {
+    const name = document.getElementById('name').value.trim();
+    const unit_id = document.getElementById('unit_id').value;
+    const max_members = document.getElementById('max_members').value;
+    const schedule = document.getElementById('schedule').value.trim();
+    const venue = document.getElementById('venue').value.trim();
+
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('success').style.display = 'none';
+
+    if (!name || !unit_id) {
+      const el = document.getElementById('error');
+      el.textContent = 'Group name and course unit are required.';
+      el.style.display = 'block';
+      return;
+    }
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Creating...';
+
+    try {
+      const res = await fetch(`${API}/groups`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, unit_id, max_members, schedule, venue })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const el = document.getElementById('error');
+        el.textContent = data.message || 'Failed to create group.';
+        el.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Create group';
+      } else {
+        const el = document.getElementById('success');
+        el.textContent = 'Group created successfully! Redirecting...';
+        el.style.display = 'block';
+        setTimeout(() => window.location.href = 'browse.html', 1500);
+      }
+    } catch (err) {
+      const el = document.getElementById('error');
+      el.textContent = 'Cannot connect to server.';
+      el.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Create group';
+    }
+  }
+
+  loadUnits();
+</script>
+</body>
+</html>

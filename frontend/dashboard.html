@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Study Group Finder</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f0; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: white; border-bottom: 1px solid #e0e0d8; }
+    .logo { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+    .logo span { color: #185fa5; }
+    .nav-links { display: flex; align-items: center; gap: 20px; }
+    .nav-link { font-size: 13px; color: #888; text-decoration: none; cursor: pointer; }
+    .nav-link.active { color: #185fa5; font-weight: 500; }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #185fa5; cursor: pointer; }
+    .main { max-width: 860px; margin: 0 auto; padding: 28px 20px; }
+    .greeting { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+    .sub { font-size: 13px; color: #888; margin-bottom: 24px; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; }
+    .stat { background: white; border-radius: 10px; padding: 16px; border: 1px solid #e0e0d8; }
+    .stat-label { font-size: 12px; color: #888; margin-bottom: 6px; }
+    .stat-val { font-size: 26px; font-weight: 600; color: #1a1a1a; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .section-title { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+    .btn { padding: 8px 16px; background: #185fa5; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn:hover { background: #0c447c; }
+    .btn-outline { padding: 8px 16px; background: white; color: #185fa5; border: 1px solid #185fa5; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
+    .groups { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 28px; }
+    .group-card { background: white; border: 1px solid #e0e0d8; border-radius: 12px; padding: 16px; }
+    .group-card:hover { border-color: #185fa5; }
+    .group-name { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+    .group-unit { font-size: 12px; color: #185fa5; margin-bottom: 10px; }
+    .group-meta { display: flex; gap: 14px; font-size: 12px; color: #888; }
+    .empty { text-align: center; padding: 32px; background: white; border-radius: 12px; border: 1px solid #e0e0d8; color: #888; font-size: 14px; }
+    .notif-list { display: flex; flex-direction: column; gap: 8px; }
+    .notif { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; background: white; border: 1px solid #e0e0d8; border-radius: 10px; }
+    .notif-dot { width: 8px; height: 8px; border-radius: 50%; background: #185fa5; margin-top: 4px; flex-shrink: 0; }
+    .notif-dot.read { background: #e0e0d8; }
+    .notif-text { font-size: 13px; color: #1a1a1a; }
+    .notif-time { font-size: 11px; color: #aaa; margin-top: 3px; }
+    .logout { font-size: 13px; color: #e24b4a; cursor: pointer; background: none; border: none; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">Study Group <span>Finder</span></div>
+  <div class="nav-links">
+    <span class="nav-link active">Dashboard</span>
+    <a class="nav-link" href="browse.html">Browse groups</a>
+    <a class="nav-link" href="create-group.html">+ Create group</a>
+    <div class="avatar" id="avatar">?</div>
+    <button class="logout" onclick="logout()">Log out</button>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="greeting" id="greeting">Good day!</div>
+  <div class="sub" id="sub">Loading your dashboard...</div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">My groups</div><div class="stat-val" id="stat-groups">—</div></div>
+    <div class="stat"><div class="stat-label">Course units</div><div class="stat-val" id="stat-units">—</div></div>
+    <div class="stat"><div class="stat-label">Notifications</div><div class="stat-val" id="stat-notifs">—</div></div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">Your study groups</span>
+    <a class="btn-outline" href="browse.html">Browse all groups</a>
+  </div>
+  <div class="groups" id="groups-container">
+    <div class="empty">Loading your groups...</div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">Recent notifications</span>
+  </div>
+  <div class="notif-list" id="notif-container">
+    <div class="empty">No notifications yet.</div>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:3000';
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+  if (!token || !user) {
+    window.location.href = 'index.html';
+  }
+
+  function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = 'index.html';
+  }
+
+  function getInitials(name) {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  }
+
+  function timeAgo(dateStr) {
+    const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+
+  function getGreeting() {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  async function loadDashboard() {
+    document.getElementById('greeting').textContent = getGreeting() + ', ' + user.name.split(' ')[0] + '!';
+    document.getElementById('sub').textContent = 'Welcome back to Study Group Finder.';
+    document.getElementById('avatar').textContent = getInitials(user.name);
+
+    try {
+      const headers = { 'Authorization': 'Bearer ' + token };
+
+      const [groupsRes, notifsRes] = await Promise.all([
+        fetch(`${API}/groups/my`, { headers }),
+        fetch(`${API}/notifications`, { headers })
+      ]);
+
+      const groupsData = await groupsRes.json();
+      const notifsData = await notifsRes.json();
+
+      const groups = groupsData.groups || [];
+      const notifs = notifsData.notifications || [];
+
+      document.getElementById('stat-groups').textContent = groups.length;
+      document.getElementById('stat-units').textContent = user.year_of_study || '—';
+      document.getElementById('stat-notifs').textContent = notifs.filter(n => !n.is_read).length;
+
+      const gc = document.getElementById('groups-container');
+      if (groups.length === 0) {
+        gc.innerHTML = '<div class="empty">You have not joined any groups yet. <a href="browse.html" style="color:#185fa5">Browse groups</a></div>';
+      } else {
+        gc.innerHTML = groups.map(g => `
+          <div class="group-card">
+            <div class="group-name">${g.name}</div>
+            <div class="group-unit">${g.unit_code} — ${g.unit_name}</div>
+            <div class="group-meta">
+              <span>👥 ${g.member_count} / ${g.max_members}</span>
+              <span>📅 ${g.schedule || 'TBD'}</span>
+              <span>📍 ${g.venue || 'TBD'}</span>
+            </div>
+          </div>`).join('');
+      }
+
+      const nc = document.getElementById('notif-container');
+      if (notifs.length === 0) {
+        nc.innerHTML = '<div class="empty">No notifications yet.</div>';
+      } else {
+        nc.innerHTML = notifs.slice(0, 5).map(n => `
+          <div class="notif">
+            <div class="notif-dot ${n.is_read ? 'read' : ''}"></div>
+            <div>
+              <div class="notif-text">${n.message}</div>
+              <div class="notif-time">${timeAgo(n.created_at)}</div>
+            </div>
+          </div>`).join('');
+      }
+
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>
