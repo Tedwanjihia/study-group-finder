@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — Study Group Finder</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f0; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: white; border-bottom: 1px solid #e0e0d8; }
+    .logo { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+    .logo span { color: #185fa5; }
+    .nav-links { display: flex; align-items: center; gap: 20px; }
+    .nav-link { font-size: 13px; color: #888; text-decoration: none; cursor: pointer; }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #185fa5; }
+    .main { max-width: 900px; margin: 0 auto; padding: 28px 20px; }
+    .page-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+    .page-sub { font-size: 13px; color: #888; margin-bottom: 24px; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+    .stat { background: white; border-radius: 10px; padding: 16px; border: 1px solid #e0e0d8; }
+    .stat-label { font-size: 12px; color: #888; margin-bottom: 6px; }
+    .stat-val { font-size: 26px; font-weight: 600; color: #1a1a1a; }
+    .tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 1px solid #e0e0d8; }
+    .tab { padding: 10px 20px; font-size: 14px; cursor: pointer; color: #888; border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; border-top: none; border-left: none; border-right: none; }
+    .tab.active { color: #185fa5; border-bottom-color: #185fa5; font-weight: 500; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e0e0d8; }
+    th { background: #f5f5f0; padding: 12px 16px; text-align: left; font-size: 12px; color: #888; font-weight: 500; border-bottom: 1px solid #e0e0d8; }
+    td { padding: 12px 16px; font-size: 13px; color: #1a1a1a; border-bottom: 1px solid #f0f0e8; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafaf8; }
+    .badge-admin { background: #e6f1fb; color: #185fa5; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+    .badge-user { background: #f5f5f0; color: #888; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+    .badge-active { background: #f0fff4; color: #276749; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+    .badge-inactive { background: #fff0f0; color: #a32d2d; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+    .btn-danger { background: none; border: 1px solid #e0e0d8; color: #a32d2d; border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
+    .btn-danger:hover { background: #fff0f0; border-color: #a32d2d; }
+    .empty { text-align: center; padding: 40px; background: white; border-radius: 12px; border: 1px solid #e0e0d8; color: #888; font-size: 14px; }
+    .access-denied { text-align: center; padding: 60px 20px; }
+    .access-denied h2 { font-size: 20px; color: #a32d2d; margin-bottom: 8px; }
+    .access-denied p { font-size: 14px; color: #888; }
+    .logout { font-size: 13px; color: #e24b4a; cursor: pointer; background: none; border: none; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: white; padding: 12px 20px; border-radius: 8px; font-size: 13px; display: none; z-index: 999; }
+    .toast.success { background: #276749; }
+    .toast.error { background: #a32d2d; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">Study Group <span>Finder</span></div>
+  <div class="nav-links">
+    <a class="nav-link" href="dashboard.html">Dashboard</a>
+    <a class="nav-link" href="browse.html">Browse groups</a>
+    <span class="nav-link" style="color:#185fa5;font-weight:500">Admin panel</span>
+    <div class="avatar" id="avatar">?</div>
+    <button class="logout" onclick="logout()">Log out</button>
+  </div>
+</nav>
+
+<div class="main" id="main-content">
+  <div class="page-title">Admin panel</div>
+  <div class="page-sub">Manage users and study groups.</div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Total users</div><div class="stat-val" id="stat-users">—</div></div>
+    <div class="stat"><div class="stat-label">Total groups</div><div class="stat-val" id="stat-groups">—</div></div>
+    <div class="stat"><div class="stat-label">Active groups</div><div class="stat-val" id="stat-active">—</div></div>
+    <div class="stat"><div class="stat-label">Course units</div><div class="stat-val" id="stat-units">—</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('users', this)">Users</button>
+    <button class="tab" onclick="switchTab('groups', this)">Groups</button>
+  </div>
+
+  <div class="panel active" id="panel-users">
+    <table id="users-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Programme</th>
+          <th>Year</th>
+          <th>Role</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="users-body">
+        <tr><td colspan="7" style="text-align:center;color:#888;padding:24px">Loading users...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="panel-groups">
+    <table id="groups-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Unit</th>
+          <th>Members</th>
+          <th>Schedule</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="groups-body">
+        <tr><td colspan="7" style="text-align:center;color:#888;padding:24px">Loading groups...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = 'http://localhost:3000';
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+  if (!token || !user) window.location.href = 'index.html';
+
+  document.getElementById('avatar').textContent = user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+  if (!user.is_admin) {
+    document.getElementById('main-content').innerHTML = `
+      <div class="access-denied">
+        <h2>Access denied</h2>
+        <p>You need admin privileges to view this page.</p>
+      </div>`;
+  }
+
+  function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = 'index.html';
+  }
+
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.className = 'toast ' + (type || '');
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 3000);
+  }
+
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + tab).classList.add('active');
+  }
+
+  async function loadStats() {
+    try {
+      const res = await fetch(`${API}/admin/stats`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      document.getElementById('stat-users').textContent = data.users || 0;
+      document.getElementById('stat-groups').textContent = data.groups || 0;
+      document.getElementById('stat-active').textContent = data.active_groups || 0;
+      document.getElementById('stat-units').textContent = data.units || 0;
+    } catch (err) { console.error(err); }
+  }
+
+  async function loadUsers() {
+    try {
+      const res = await fetch(`${API}/admin/users`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      const tbody = document.getElementById('users-body');
+      if (!data.users || data.users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;padding:24px">No users found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.users.map(u => `
+        <tr>
+          <td>${u.id}</td>
+          <td>${u.name}</td>
+          <td>${u.email}</td>
+          <td>${u.programme || '—'}</td>
+          <td>${u.year_of_study || '—'}</td>
+          <td><span class="${u.is_admin ? 'badge-admin' : 'badge-user'}">${u.is_admin ? 'Admin' : 'Student'}</span></td>
+          <td>${u.id !== user.id ? `<button class="btn-danger" onclick="deleteUser(${u.id}, this)">Remove</button>` : '—'}</td>
+        </tr>`).join('');
+    } catch (err) { console.error(err); }
+  }
+
+  async function loadGroups() {
+    try {
+      const res = await fetch(`${API}/admin/groups`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      const tbody = document.getElementById('groups-body');
+      if (!data.groups || data.groups.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;padding:24px">No groups found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.groups.map(g => `
+        <tr>
+          <td>${g.id}</td>
+          <td>${g.name}</td>
+          <td>${g.unit_code}</td>
+          <td>${g.member_count} / ${g.max_members}</td>
+          <td>${g.schedule || '—'}</td>
+          <td><span class="${g.is_active ? 'badge-active' : 'badge-inactive'}">${g.is_active ? 'Active' : 'Inactive'}</span></td>
+          <td><button class="btn-danger" onclick="deactivateGroup(${g.id}, this)">${g.is_active ? 'Deactivate' : 'Activate'}</button></td>
+        </tr>`).join('');
+    } catch (err) { console.error(err); }
+  }
+
+  async function deleteUser(id, btn) {
+    if (!confirm('Remove this user?')) return;
+    try {
+      const res = await fetch(`${API}/admin/users/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.ok) { showToast('User removed.', 'success'); loadUsers(); loadStats(); }
+      else showToast('Failed to remove user.', 'error');
+    } catch (err) { showToast('Server error.', 'error'); }
+  }
+
+  async function deactivateGroup(id, btn) {
+    try {
+      const res = await fetch(`${API}/admin/groups/${id}/toggle`, {
+        method: 'PATCH',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.ok) { showToast('Group updated.', 'success'); loadGroups(); loadStats(); }
+      else showToast('Failed to update group.', 'error');
+    } catch (err) { showToast('Server error.', 'error'); }
+  }
+
+  if (user.is_admin) {
+    loadStats();
+    loadUsers();
+    loadGroups();
+  }
+</script>
+</body>
+</html>

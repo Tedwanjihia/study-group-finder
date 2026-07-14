@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications — Study Group Finder</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f0; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: white; border-bottom: 1px solid #e0e0d8; }
+    .logo { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+    .logo span { color: #185fa5; }
+    .nav-links { display: flex; align-items: center; gap: 20px; }
+    .nav-link { font-size: 13px; color: #888; text-decoration: none; cursor: pointer; }
+    .nav-link.active { color: #185fa5; font-weight: 500; }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #185fa5; }
+    .main { max-width: 680px; margin: 0 auto; padding: 28px 20px; }
+    .page-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+    .page-sub { font-size: 13px; color: #888; margin-bottom: 24px; }
+    .notif-list { display: flex; flex-direction: column; gap: 8px; }
+    .notif { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: white; border: 1px solid #e0e0d8; border-radius: 10px; cursor: pointer; transition: border-color 0.15s; }
+    .notif:hover { border-color: #185fa5; }
+    .notif.unread { border-left: 3px solid #185fa5; }
+    .notif-dot { width: 8px; height: 8px; border-radius: 50%; background: #185fa5; margin-top: 5px; flex-shrink: 0; }
+    .notif-dot.read { background: #e0e0d8; }
+    .notif-content { flex: 1; }
+    .notif-text { font-size: 14px; color: #1a1a1a; margin-bottom: 4px; }
+    .notif-time { font-size: 12px; color: #aaa; }
+    .empty { text-align: center; padding: 48px; background: white; border-radius: 12px; border: 1px solid #e0e0d8; color: #888; font-size: 14px; }
+    .mark-all { font-size: 13px; color: #185fa5; background: none; border: none; cursor: pointer; padding: 0; }
+    .mark-all:hover { text-decoration: underline; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .logout { font-size: 13px; color: #e24b4a; cursor: pointer; background: none; border: none; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">Study Group <span>Finder</span></div>
+  <div class="nav-links">
+    <a class="nav-link" href="dashboard.html">Dashboard</a>
+    <a class="nav-link" href="browse.html">Browse groups</a>
+    <a class="nav-link" href="create-group.html">+ Create group</a>
+    <span class="nav-link active">Notifications</span>
+    <div class="avatar" id="avatar">?</div>
+    <button class="logout" onclick="logout()">Log out</button>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="header-row">
+    <div>
+      <div class="page-title">Notifications</div>
+      <div class="page-sub">Stay updated on your study groups.</div>
+    </div>
+    <button class="mark-all" onclick="markAllRead()">Mark all as read</button>
+  </div>
+
+  <div class="notif-list" id="notif-container">
+    <div class="empty">Loading notifications...</div>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:3000';
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+  if (!token || !user) window.location.href = 'index.html';
+
+  document.getElementById('avatar').textContent = user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+  function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = 'index.html';
+  }
+
+  function timeAgo(dateStr) {
+    const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+
+  let notifications = [];
+
+  async function loadNotifications() {
+    try {
+      const res = await fetch(`${API}/notifications`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      notifications = data.notifications || [];
+      renderNotifications();
+    } catch (err) {
+      console.error(err);
+      document.getElementById('notif-container').innerHTML = '<div class="empty">Failed to load notifications.</div>';
+    }
+  }
+
+  function renderNotifications() {
+    const nc = document.getElementById('notif-container');
+    if (notifications.length === 0) {
+      nc.innerHTML = '<div class="empty">No notifications yet. Join a group to get started.</div>';
+      return;
+    }
+    nc.innerHTML = notifications.map(n => `
+      <div class="notif ${n.is_read ? '' : 'unread'}" onclick="markRead(${n.id}, this)">
+        <div class="notif-dot ${n.is_read ? 'read' : ''}"></div>
+        <div class="notif-content">
+          <div class="notif-text">${n.message}</div>
+          <div class="notif-time">${timeAgo(n.created_at)}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  async function markRead(id, el) {
+    if (el.classList.contains('unread')) {
+      try {
+        await fetch(`${API}/notifications/${id}/read`, {
+          method: 'PATCH',
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        el.classList.remove('unread');
+        el.querySelector('.notif-dot').classList.add('read');
+      } catch (err) { console.error(err); }
+    }
+  }
+
+  async function markAllRead() {
+    const unread = notifications.filter(n => !n.is_read);
+    await Promise.all(unread.map(n =>
+      fetch(`${API}/notifications/${n.id}/read`, {
+        method: 'PATCH',
+        headers: { 'Authorization': 'Bearer ' + token }
+      })
+    ));
+    await loadNotifications();
+  }
+
+  loadNotifications();
+</script>
+</body>
+</html>
