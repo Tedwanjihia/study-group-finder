@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const pool = require('../models/db');
 
 router.post('/register', async (req, res) => {
-  const { name, email, password, programme, year_of_study } = req.body;
+  const { name, email, password, programme, year_of_study, unit_ids } = req.body;
   if (!name || !email || !password || !programme || !year_of_study) {
     return res.status(400).json({ message: 'All fields are required.' });
   }
@@ -19,7 +19,17 @@ router.post('/register', async (req, res) => {
       'INSERT INTO users (name, email, password_hash, programme, year_of_study) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, programme, year_of_study',
       [name, email, password_hash, programme, year_of_study]
     );
-    res.status(201).json({ message: 'Account created successfully.', user: result.rows[0] });
+    const user = result.rows[0];
+
+    // Save selected course units
+    if (unit_ids && unit_ids.length > 0) {
+      const unitInserts = unit_ids.map(uid =>
+        pool.query('INSERT INTO user_units (user_id, unit_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [user.id, uid])
+      );
+      await Promise.all(unitInserts);
+    }
+
+    res.status(201).json({ message: 'Account created successfully.', user });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error. Please try again.' });
