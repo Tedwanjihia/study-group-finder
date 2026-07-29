@@ -8,6 +8,7 @@ const groupRoutes = require('./routes/groups');
 const notifRoutes = require('./routes/notifications');
 const unitRoutes = require('./routes/units');
 const adminRoutes = require('./routes/admin');
+const profileRoutes = require('./routes/profile');
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use('/groups', groupRoutes);
 app.use('/notifications', notifRoutes);
 app.use('/units', unitRoutes);
 app.use('/admin', adminRoutes);
+app.use('/profile', profileRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Study Group Finder API is running' });

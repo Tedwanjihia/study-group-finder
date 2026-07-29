@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile — Study Group Finder</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f0; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: white; border-bottom: 1px solid #e0e0d8; }
+    .logo { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+    .logo span { color: #185fa5; }
+    .nav-links { display: flex; align-items: center; gap: 20px; }
+    .nav-link { font-size: 13px; color: #888; text-decoration: none; cursor: pointer; }
+    .nav-link.active { color: #185fa5; font-weight: 500; }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #185fa5; cursor: pointer; }
+    .main { max-width: 680px; margin: 0 auto; padding: 28px 20px; }
+    .page-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+    .page-sub { font-size: 13px; color: #888; margin-bottom: 24px; }
+    .card { background: white; border: 1px solid #e0e0d8; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+    .card-title { font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #f0f0e8; }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 500; }
+    input, select { width: 100%; padding: 9px 12px; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 14px; color: #1a1a1a; background: white; outline: none; }
+    input:focus, select:focus { border-color: #185fa5; }
+    input:disabled { background: #f5f5f0; color: #888; }
+    .btn { padding: 9px 20px; background: #185fa5; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .btn:hover { background: #0c447c; }
+    .btn-danger { padding: 9px 20px; background: white; color: #a32d2d; border: 1px solid #a32d2d; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .btn-danger:hover { background: #fff0f0; }
+    .success { background: #f0fff4; color: #276749; font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; display: none; }
+    .error { background: #fff0f0; color: #a32d2d; font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; display: none; }
+    .units-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .unit-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 13px; cursor: pointer; }
+    .unit-item.selected { border-color: #185fa5; background: #e6f1fb; }
+    .unit-item input { width: auto; margin: 0; }
+    .avatar-large { width: 64px; height: 64px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; color: #185fa5; margin-bottom: 12px; }
+    .profile-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+    .profile-name { font-size: 18px; font-weight: 600; color: #1a1a1a; }
+    .profile-email { font-size: 13px; color: #888; }
+    .logout { font-size: 13px; color: #e24b4a; cursor: pointer; background: none; border: none; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: white; padding: 12px 20px; border-radius: 8px; font-size: 13px; display: none; z-index: 999; }
+    .toast.success { background: #276749; }
+    .toast.error { background: #a32d2d; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">Study Group <span>Finder</span></div>
+  <div class="nav-links">
+    <a class="nav-link" href="dashboard.html">Dashboard</a>
+    <a class="nav-link" href="browse.html">Browse groups</a>
+    <a class="nav-link" href="notifications.html">Notifications</a>
+    <span class="nav-link active">Profile</span>
+    <div class="avatar" id="avatar">?</div>
+    <button class="logout" onclick="logout()">Log out</button>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-title">My Profile</div>
+  <div class="page-sub">Manage your account details and enrolled units.</div>
+
+  <!-- Profile header -->
+  <div class="card">
+    <div class="profile-header">
+      <div class="avatar-large" id="avatar-large">?</div>
+      <div>
+        <div class="profile-name" id="profile-name">Loading...</div>
+        <div class="profile-email" id="profile-email"></div>
+      </div>
+    </div>
+
+    <div class="success" id="profile-success"></div>
+    <div class="error" id="profile-error"></div>
+
+    <div class="form-group">
+      <label>Full name</label>
+      <input type="text" id="edit-name" />
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="edit-email" disabled />
+    </div>
+    <div class="form-group">
+      <label>Programme</label>
+      <select id="edit-programme">
+        <option value="">Select your programme</option>
+        <option>Bachelor of Science in Computer Science</option>
+        <option>Bachelor of Science in Information Technology</option>
+        <option>Bachelor of Science in Electrical Engineering</option>
+        <option>Bachelor of Commerce</option>
+        <option>Bachelor of Arts in Communication</option>
+        <option>Bachelor of Science in Applied Statistics</option>
+        <option>Bachelor of Science in Actuarial Science</option>
+        <option>Bachelor of Laws (LLB)</option>
+        <option>Bachelor of Education</option>
+        <option>Bachelor of Arts in Counseling Psychology</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Year of study</label>
+      <select id="edit-year">
+        <option value="1">Year 1</option>
+        <option value="2">Year 2</option>
+        <option value="3">Year 3</option>
+        <option value="4">Year 4</option>
+      </select>
+    </div>
+    <button class="btn" onclick="saveProfile()">Save changes</button>
+  </div>
+
+  <!-- Course units -->
+  <div class="card">
+    <div class="card-title">Enrolled Course Units</div>
+    <div class="success" id="units-success"></div>
+    <div class="units-grid" id="units-grid">
+      <div style="color:#aaa;font-size:13px">Loading units...</div>
+    </div>
+    <br>
+    <button class="btn" onclick="saveUnits()">Update units</button>
+  </div>
+
+  <!-- Change password -->
+  <div class="card">
+    <div class="card-title">Change Password</div>
+    <div class="success" id="pw-success"></div>
+    <div class="error" id="pw-error"></div>
+    <div class="form-group">
+      <label>Current password</label>
+      <input type="password" id="current-password" placeholder="Enter current password" />
+    </div>
+    <div class="form-group">
+      <label>New password</label>
+      <input type="password" id="new-password" placeholder="Min 6 characters" />
+    </div>
+    <button class="btn" onclick="changePassword()">Change password</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = 'https://study-group-finder-api.onrender.com';
+  const token = localStorage.getItem('token');
+  let user = JSON.parse(localStorage.getItem('user') || 'null');
+
+  if (!token || !user) window.location.href = 'index.html';
+
+  function getInitials(name) {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  }
+
+  function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = 'index.html';
+  }
+
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + (type || '');
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 3000);
+  }
+
+  function loadProfile() {
+    document.getElementById('avatar').textContent = getInitials(user.name);
+    document.getElementById('avatar-large').textContent = getInitials(user.name);
+    document.getElementById('profile-name').textContent = user.name;
+    document.getElementById('profile-email').textContent = user.email;
+    document.getElementById('edit-name').value = user.name;
+    document.getElementById('edit-email').value = user.email;
+    document.getElementById('edit-programme').value = user.programme || '';
+    document.getElementById('edit-year').value = user.year_of_study || 1;
+  }
+
+  async function loadUnits() {
+    try {
+      const [allRes, myRes] = await Promise.all([
+        fetch(`${API}/units/all`),
+        fetch(`${API}/profile/units`, { headers: { 'Authorization': 'Bearer ' + token } })
+      ]);
+      const allData = await allRes.json();
+      const myData = await myRes.json();
+      const myUnitIds = new Set((myData.units || []).map(u => String(u.id)));
+
+      const grid = document.getElementById('units-grid');
+      grid.innerHTML = (allData.units || []).map(u => `
+        <label class="unit-item ${myUnitIds.has(String(u.id)) ? 'selected' : ''}" onclick="toggleUnit(this)">
+          <input type="checkbox" value="${u.id}" ${myUnitIds.has(String(u.id)) ? 'checked' : ''} style="width:auto;margin:0" />
+          <span>${u.code} — ${u.name}</span>
+        </label>`).join('');
+    } catch (err) { console.error(err); }
+  }
+
+  function toggleUnit(label) {
+    label.classList.toggle('selected');
+  }
+
+  async function saveProfile() {
+    const name = document.getElementById('edit-name').value.trim();
+    const programme = document.getElementById('edit-programme').value;
+    const year_of_study = document.getElementById('edit-year').value;
+
+    document.getElementById('profile-success').style.display = 'none';
+    document.getElementById('profile-error').style.display = 'none';
+
+    try {
+      const res = await fetch(`${API}/profile`, {
+        method: 'PATCH',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, programme, year_of_study })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const el = document.getElementById('profile-error');
+        el.textContent = data.message;
+        el.style.display = 'block';
+      } else {
+        user = { ...user, name, programme, year_of_study };
+        localStorage.setItem('user', JSON.stringify(user));
+        document.getElementById('profile-name').textContent = name;
+        document.getElementById('avatar').textContent = getInitials(name);
+        document.getElementById('avatar-large').textContent = getInitials(name);
+        const el = document.getElementById('profile-success');
+        el.textContent = 'Profile updated successfully.';
+        el.style.display = 'block';
+      }
+    } catch (err) { showToast('Server error.', 'error'); }
+  }
+
+  async function saveUnits() {
+    const selected = [...document.querySelectorAll('#units-grid input:checked')].map(cb => cb.value);
+    try {
+      const res = await fetch(`${API}/profile/units`, {
+        method: 'PUT',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ unit_ids: selected })
+      });
+      if (res.ok) {
+        const el = document.getElementById('units-success');
+        el.textContent = 'Course units updated successfully.';
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 3000);
+      }
+    } catch (err) { showToast('Server error.', 'error'); }
+  }
+
+  async function changePassword() {
+    const current = document.getElementById('current-password').value;
+    const newpw = document.getElementById('new-password').value;
+
+    document.getElementById('pw-success').style.display = 'none';
+    document.getElementById('pw-error').style.display = 'none';
+
+    if (!current || !newpw) {
+      const el = document.getElementById('pw-error');
+      el.textContent = 'Please fill in both fields.';
+      el.style.display = 'block';
+      return;
+    }
+    if (newpw.length < 6) {
+      const el = document.getElementById('pw-error');
+      el.textContent = 'New password must be at least 6 characters.';
+      el.style.display = 'block';
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/profile/password`, {
+        method: 'PATCH',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ current_password: current, new_password: newpw })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const el = document.getElementById('pw-error');
+        el.textContent = data.message;
+        el.style.display = 'block';
+      } else {
+        const el = document.getElementById('pw-success');
+        el.textContent = 'Password changed successfully.';
+        el.style.display = 'block';
+        document.getElementById('current-password').value = '';
+        document.getElementById('new-password').value = '';
+      }
+    } catch (err) { showToast('Server error.', 'error'); }
+  }
+
+  loadProfile();
+  loadUnits();
+</script>
+</body>
+</html>
