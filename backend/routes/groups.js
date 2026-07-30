@@ -98,6 +98,20 @@ router.post('/:id/join', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 });
-
+router.delete('/:id/leave', auth, async (req, res) => {
+  const groupId = req.params.id;
+  try {
+    const group = await pool.query('SELECT creator_id FROM study_groups WHERE id = $1', [groupId]);
+    if (group.rows.length === 0) return res.status(404).json({ message: 'Group not found.' });
+    if (group.rows[0].creator_id === req.user.id) {
+      return res.status(400).json({ message: 'You cannot leave a group you created. Deactivate it instead.' });
+    }
+    await pool.query('DELETE FROM group_members WHERE group_id = $1 AND user_id = $2', [groupId, req.user.id]);
+    res.json({ message: 'You have left the group.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
 
 module.exports = router;
