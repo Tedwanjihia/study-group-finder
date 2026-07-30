@@ -183,6 +183,7 @@
         fetch(`${API}/units/all`),
         fetch(`${API}/profile/units`, { headers: { 'Authorization': 'Bearer ' + token } })
       ]);
+      if (myRes.status === 401) return window.location.href = 'index.html';
       const allData = await allRes.json();
       const myData = await myRes.json();
       const myUnitIds = new Set((myData.units || []).map(u => String(u.id)));
@@ -214,6 +215,7 @@
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, programme, year_of_study })
       });
+      if (res.status === 401) return window.location.href = 'index.html';
       const data = await res.json();
       if (!res.ok) {
         const el = document.getElementById('profile-error');
@@ -233,13 +235,14 @@
   }
 
   async function saveUnits() {
-    const selected = [...document.querySelectorAll('#units-grid input:checked')].map(cb => cb.value);
+    const selected = [...document.querySelectorAll('#units-grid input:checked')].map(cb => Number(cb.value));
     try {
       const res = await fetch(`${API}/profile/units`, {
         method: 'PUT',
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
         body: JSON.stringify({ unit_ids: selected })
       });
+      if (res.status === 401) return window.location.href = 'index.html';
       if (res.ok) {
         const el = document.getElementById('units-success');
         el.textContent = 'Course units updated successfully.';
@@ -274,6 +277,7 @@
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
         body: JSON.stringify({ current_password: current, new_password: newpw })
       });
+      if (res.status === 401) return window.location.href = 'index.html';
       const data = await res.json();
       if (!res.ok) {
         const el = document.getElementById('pw-error');

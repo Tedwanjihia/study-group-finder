@@ -101,19 +101,13 @@
     window.location.href = 'index.html';
   }
 
-  async function loadUnits() {
-    try {
-      const res = await fetch(`${API}/units`, { headers: { 'Authorization': 'Bearer ' + token } });
-      const data = await res.json();
-      const sel = document.getElementById('unit_id');
-      (data.units || []).forEach(u => {
-        const opt = document.createElement('option');
-        opt.value = u.id;
-        opt.textContent = u.code + ' — ' + u.name;
-        sel.appendChild(opt);
-      });
-    } catch (err) { console.error(err); }
-  }
+       const res = await fetch(`${API}/groups`, {
+         method: 'POST',
+         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+         body: JSON.stringify({ name, unit_id, max_members, schedule, venue })
+       });
+       if (res.status === 401) return window.location.href = 'index.html';
+       const data = await res.json();
 
   async function createGroup() {
     const name = document.getElementById('name').value.trim();

@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const pool = require('../models/db');
 
 router.post('/register', async (req, res) => {
-  const { name, email, password, programme, year_of_study } = req.body;
+  const { name, email, password, programme, year_of_study, unit_ids } = req.body;
   if (!name || !email || !password || !programme || !year_of_study) {
     return res.status(400).json({ message: 'All fields are required.' });
   }
@@ -19,6 +19,14 @@ router.post('/register', async (req, res) => {
       'INSERT INTO users (name, email, password_hash, programme, year_of_study) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, programme, year_of_study',
       [name, email, password_hash, programme, year_of_study]
     );
+
+    if (unit_ids && Array.isArray(unit_ids) && unit_ids.length > 0) {
+      const inserts = unit_ids.map(uid =>
+        pool.query('INSERT INTO user_units (user_id, unit_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [result.rows[0].id, uid])
+      );
+      await Promise.all(inserts);
+    }
+
     res.status(201).json({ message: 'Account created successfully.', user: result.rows[0] });
   } catch (err) {
     console.error(err);
@@ -42,7 +50,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
     const token = jwt.sign(
-      { id: user.id, email: user.email, is_admin: user.is_admin },
+      { id: user.id, name: user.name, email: user.email, is_admin: user.is_admin },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );

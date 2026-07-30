@@ -96,6 +96,13 @@
     <div class="empty">Loading group...</div>
   </div>
 
+  <div class="card" id="request-card" style="display:none">
+    <div class="section-title">Join requests</div>
+    <div class="member-list" id="request-list">
+      <div class="empty">Loading join requests...</div>
+    </div>
+  </div>
+
 <div class="card">
   <div class="section-title">Group chat</div>
   <div class="chat-box">
@@ -140,8 +147,9 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
-  const API = 'https://study-group-finder-api.onrender.com';
+  const API = window.location.hostname.includes('localhost') ? 'http://localhost:3000' : 'https://study-group-finder-api.onrender.com';
   const token = localStorage.getItem('token');
   const user = JSON.parse(localStorage.getItem('user') || 'null');
 
@@ -173,16 +181,55 @@
   }
 
   let groupData = null;
+  let messages = [];
+  let selectedRating = 0;
+
+  const socket = io(API, {
+    auth: { token }
+  });
+
+  socket.on('connect', () => {
+    if (groupId) {
+      socket.emit('joinGroupRoom', groupId);
+    }
+  });
+
+  socket.on('connect_error', err => {
+    console.error('Socket connect error:', err);
+    if (err.message === 'Authentication error') {
+      showToast('Chat authentication failed. Please sign in again.', 'error');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setTimeout(() => window.location.href = 'index.html', 1200);
+    }
+  });
+
+  socket.on('groupMessage', msg => {
+    if (!msg || !msg.id) return;
+    messages.push(msg);
+    renderMessages(messages);
+  });
 
   async function loadGroup() {
     try {
       const res = await fetch(`${API}/groups/${groupId}`, {
         headers: { 'Authorization': 'Bearer ' + token }
       });
+      if (res.status === 401) return window.location.href = 'index.html';
       const data = await res.json();
+      if (!res.ok || !data.group) {
+        document.getElementById('group-info').innerHTML = '<div class="empty">Group not found or access denied.</div>';
+        return;
+      }
       groupData = data.group;
       renderGroupInfo(groupData);
       renderMembers(data.members || []);
+      updateChatState(groupData);
+      if (groupData.is_creator) {
+        loadRequests();
+      } else {
+        document.getElementById('request-card')?.remove();
+      }
     } catch (err) {
       console.error(err);
       document.getElementById('group-info').innerHTML = '<div class="empty">Failed to load group.</div>';
@@ -192,19 +239,26 @@
   function renderGroupInfo(g) {
     const count = parseInt(g.member_count) || 0;
     const isFull = count >= g.max_members;
-    const isCreator = g.creator_id === user.id;
+    const isCreator = g.is_creator;
     const isMember = g.is_member;
+    const hasPendingRequest = g.has_pending_request;
 
     let actionBtn = '';
     if (isCreator) {
       actionBtn = '<button class="btn-outline" disabled>You created this group</button>';
     } else if (isMember) {
       actionBtn = `<button class="btn-danger" onclick="leaveGroup()">Leave group</button>`;
+    } else if (hasPendingRequest) {
+      actionBtn = '<button class="btn-outline" disabled>Join request pending</button>';
     } else if (isFull) {
       actionBtn = '<button class="btn-outline" disabled>Group is full</button>';
     } else {
-      actionBtn = `<button class="btn" onclick="joinGroup()">Join group</button>`;
+      actionBtn = `<button class="btn" onclick="joinGroup()">Request to join</button>`;
     }
+
+    const pendingNotice = isCreator && g.pending_count > 0
+      ? `<div class="meta-item"><div class="meta-label">Pending</div><div class="meta-val">${g.pending_count} request${g.pending_count === 1 ? '' : 's'}</div></div>`
+      : '';
 
     document.getElementById('group-info').innerHTML = `
       <div class="group-name">${g.name}</div>
@@ -226,6 +280,7 @@
           <div class="meta-label">Venue</div>
           <div class="meta-val">${g.venue || 'TBD'}</div>
         </div>
+        ${pendingNotice}
       </div>`;
   }
 
@@ -255,10 +310,14 @@
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + token }
       });
+      if (res.status === 401) return window.location.href = 'index.html';
       const data = await res.json();
-      if (!res.ok) showToast(data.message, 'error');
-      else { showToast('Joined successfully!', 'success'); loadGroup(); }
-    } catch (err) { showToast('Server error.', 'error'); }
+      if (!res.ok) return showToast(data.message, 'error');
+      showToast(data.message || 'Join request submitted.', 'success');
+      loadGroup();
+    } catch (err) {
+      showToast('Server error.', 'error');
+    }
   }
 
   async function leaveGroup() {
@@ -268,175 +327,260 @@
         method: 'DELETE',
         headers: { 'Authorization': 'Bearer ' + token }
       });
+      if (res.status === 401) return window.location.href = 'index.html';
       const data = await res.json();
-      if (!res.ok) showToast(data.message, 'error');
-      else { showToast('You have left the group.', 'success'); loadGroup(); }
-    } catch (err) { showToast('Server error.', 'error'); }
+      if (!res.ok) return showToast(data.message, 'error');
+      showToast(data.message || 'You have left the group.', 'success');
+      loadGroup();
+    } catch (err) {
+      showToast('Server error.', 'error');
+    }
   }
 
-  let chatPollInterval = null;
-let lastMessageCount = 0;
+  async function loadMessages() {
+    try {
+      const res = await fetch(`${API}/groups/${groupId}/messages`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.status === 401) return window.location.href = 'index.html';
+      const data = await res.json();
+      if (!res.ok) {
+        document.getElementById('chat-messages').innerHTML = `<div class="empty">${data.message}</div>`;
+        return;
+      }
+      messages = data.messages || [];
+      renderMessages(messages);
+    } catch (err) {
+      document.getElementById('chat-messages').innerHTML = '<div class="empty">Could not load messages.</div>';
+    }
+  }
 
-async function loadMessages(isPoll) {
-  try {
-    const res = await fetch(`${API}/groups/${groupId}/messages`, {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      if (!isPoll) document.getElementById('chat-messages').innerHTML = `<div class="empty">${data.message}</div>`;
+  function renderMessages(messageList) {
+    const box = document.getElementById('chat-messages');
+    if (!messageList || messageList.length === 0) {
+      box.innerHTML = '<div class="empty">No messages yet. Say hello!</div>';
       return;
     }
-    if (data.messages.length !== lastMessageCount) {
-      renderMessages(data.messages);
-      lastMessageCount = data.messages.length;
-    }
-  } catch (err) {
-    if (!isPoll) document.getElementById('chat-messages').innerHTML = '<div class="empty">Could not load messages.</div>';
+    const wasAtBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
+    box.innerHTML = messageList.map(m => {
+      const mine = m.user_id === user.id;
+      const time = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return `
+        <div class="msg ${mine ? 'msg-mine' : 'msg-other'}">
+          ${mine ? '' : `<div class="msg-sender">${m.name}</div>`}
+          ${escapeHtml(m.message)}
+          <div class="msg-time">${time}</div>
+        </div>`;
+    }).join('');
+    if (wasAtBottom || messageList.length <= 1) box.scrollTop = box.scrollHeight;
   }
-}
 
-function renderMessages(messages) {
-  const box = document.getElementById('chat-messages');
-  if (messages.length === 0) {
-    box.innerHTML = '<div class="empty">No messages yet. Say hello!</div>';
-    return;
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
   }
-  const wasAtBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
-  box.innerHTML = messages.map(m => {
-    const mine = m.user_id === user.id;
-    const time = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    return `
-      <div class="msg ${mine ? 'msg-mine' : 'msg-other'}">
-        ${mine ? '' : `<div class="msg-sender">${m.name}</div>`}
-        ${escapeHtml(m.message)}
-        <div class="msg-time">${time}</div>
-      </div>`;
-  }).join('');
-  if (wasAtBottom || messages.length <= 1) box.scrollTop = box.scrollHeight;
-}
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-async function sendMessage() {
-  const input = document.getElementById('chat-input');
-  const btn = document.getElementById('chat-send-btn');
-  const text = input.value.trim();
-  if (!text) return;
-  btn.disabled = true;
-  try {
-    const res = await fetch(`${API}/groups/${groupId}/messages`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ message: text })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      showToast(data.message, 'error');
+  function updateChatState(g) {
+    if (!g.is_member && !g.is_creator) {
+      setChatDisabled(true, 'Join this group to participate in the chat.');
     } else {
+      setChatDisabled(false);
+      if (socket.connected) {
+        socket.emit('joinGroupRoom', groupId);
+      }
+    }
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const btn = document.getElementById('chat-send-btn');
+    const text = input.value.trim();
+    if (!text) return;
+    if (!socket.connected) {
+      showToast('Chat connection is offline.', 'error');
+      return;
+    }
+    btn.disabled = true;
+    socket.emit('groupMessage', { groupId, message: text }, response => {
+      btn.disabled = false;
+      if (!response) {
+        showToast('Message failed to send.', 'error');
+        return;
+      }
+      if (response.status !== 'ok') {
+        showToast(response.message || 'Message failed.', 'error');
+        return;
+      }
       input.value = '';
-      loadMessages();
-    }
-  } catch (err) {
-    showToast('Could not send message.', 'error');
-  } finally {
-    btn.disabled = false;
-    input.focus();
+      showToast('Message sent.', 'success');
+    });
   }
-}
 
-loadMessages();
-chatPollInterval = setInterval(() => loadMessages(true), 4000);
-
-  loadGroup();
-
-  let selectedRating = 0;
-
-function initStarInput() {
-  const stars = document.querySelectorAll('#star-input .star');
-  stars.forEach(star => {
-    star.addEventListener('mouseenter', () => highlightStars(parseInt(star.dataset.val)));
-    star.addEventListener('mouseleave', () => highlightStars(selectedRating));
-    star.addEventListener('click', () => {
-      selectedRating = parseInt(star.dataset.val);
-      highlightStars(selectedRating);
-    });
-  });
-}
-
-function highlightStars(count) {
-  document.querySelectorAll('#star-input .star').forEach(star => {
-    star.classList.toggle('filled', parseInt(star.dataset.val) <= count);
-  });
-}
-
-async function loadReviews() {
-  try {
-    const res = await fetch(`${API}/groups/${groupId}/reviews`, {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    const data = await res.json();
-    if (!res.ok) return;
-
-    const summary = document.getElementById('rating-summary');
-    if (data.review_count === 0) {
-      summary.innerHTML = '<div class="rating-count">No reviews yet — be the first!</div>';
-    } else {
-      summary.innerHTML = `
-        <span class="rating-avg">★ ${data.avg_rating}</span>
-        <span class="rating-count">(${data.review_count} review${data.review_count === 1 ? '' : 's'})</span>`;
+  async function loadRequests() {
+    try {
+      const res = await fetch(`${API}/groups/${groupId}/requests`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.status === 401) return window.location.href = 'index.html';
+      const data = await res.json();
+      const section = document.getElementById('request-card');
+      if (!res.ok) {
+        if (section) section.style.display = 'none';
+        return;
+      }
+      if (section) section.style.display = 'block';
+      renderRequests(data.requests || []);
+    } catch (err) {
+      console.error(err);
+      const section = document.getElementById('request-card');
+      if (section) section.style.display = 'none';
     }
+  }
 
-    const list = document.getElementById('review-list');
-    list.innerHTML = data.reviews.map(r => `
-      <div class="review">
-        <div class="review-header">
-          <span class="review-name">${r.name}</span>
-          <span class="review-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
+  function renderRequests(requests) {
+    const section = document.getElementById('request-card');
+    if (!section) return;
+    section.style.display = 'block';
+    const list = section.querySelector('#request-list');
+    if (!requests || requests.length === 0) {
+      list.innerHTML = '<div class="empty">No pending join requests.</div>';
+      return;
+    }
+    list.innerHTML = requests.map(r => `
+      <div class="member">
+        <div class="member-avatar">${getInitials(r.name)}</div>
+        <div style="flex:1;">
+          <div class="member-name">${r.name}</div>
+          <div class="member-info">${r.programme || 'USIU-Africa'} · Year ${r.year_of_study || '—'}</div>
         </div>
-        ${r.comment ? `<div class="review-comment">${escapeHtml(r.comment)}</div>` : ''}
+        <div style="display:flex; gap:8px;">
+          <button class="btn" onclick="approveRequest(${groupId}, ${r.id})">Approve</button>
+          <button class="btn-danger" onclick="rejectRequest(${groupId}, ${r.id})">Reject</button>
+        </div>
       </div>`).join('');
+  }
 
-    // Show the review form only if the user is a member or creator
-    const myReview = data.reviews.find(r => r.user_id === user.id);
-    document.getElementById('review-form').style.display = 'flex';
-    if (myReview) {
-      selectedRating = myReview.rating;
-      highlightStars(selectedRating);
-      document.getElementById('review-comment').value = myReview.comment || '';
+  async function approveRequest(groupIdParam, requestId) {
+    try {
+      const res = await fetch(`${API}/groups/${groupIdParam}/requests/${requestId}/approve`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (!res.ok) return showToast(data.message, 'error');
+      showToast('Request approved.', 'success');
+      loadGroup();
+    } catch (err) {
+      showToast('Could not approve request.', 'error');
     }
-  } catch (err) {
-    console.error(err);
   }
-}
 
-async function submitReview() {
-  if (selectedRating === 0) {
-    showToast('Please select a star rating.', 'error');
-    return;
+  async function rejectRequest(groupIdParam, requestId) {
+    try {
+      const res = await fetch(`${API}/groups/${groupIdParam}/requests/${requestId}/reject`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (!res.ok) return showToast(data.message, 'error');
+      showToast('Request rejected.', 'success');
+      loadGroup();
+    } catch (err) {
+      showToast('Could not reject request.', 'error');
+    }
   }
-  const comment = document.getElementById('review-comment').value.trim();
-  try {
-    const res = await fetch(`${API}/groups/${groupId}/reviews`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ rating: selectedRating, comment })
+
+  function setChatDisabled(disabled, message) {
+    const input = document.getElementById('chat-input');
+    const btn = document.getElementById('chat-send-btn');
+    input.disabled = disabled;
+    btn.disabled = disabled;
+    input.placeholder = disabled ? (message || 'Join the group to chat.') : 'Write a message...';
+  }
+
+  function initStarInput() {
+    const stars = document.querySelectorAll('#star-input .star');
+    stars.forEach(star => {
+      star.addEventListener('mouseenter', () => highlightStars(parseInt(star.dataset.val)));
+      star.addEventListener('mouseleave', () => highlightStars(selectedRating));
+      star.addEventListener('click', () => {
+        selectedRating = parseInt(star.dataset.val);
+        highlightStars(selectedRating);
+      });
     });
-    const data = await res.json();
-    if (!res.ok) return showToast(data.message, 'error');
-    showToast('Review saved!', 'success');
-    loadReviews();
-  } catch (err) {
-    showToast('Could not save review.', 'error');
   }
-}
 
-initStarInput();
-loadReviews();
+  function highlightStars(count) {
+    document.querySelectorAll('#star-input .star').forEach(star => {
+      star.classList.toggle('filled', parseInt(star.dataset.val) <= count);
+    });
+  }
+
+  async function loadReviews() {
+    try {
+      const res = await fetch(`${API}/groups/${groupId}/reviews`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (!res.ok) return;
+
+      const summary = document.getElementById('rating-summary');
+      if (data.review_count === 0) {
+        summary.innerHTML = '<div class="rating-count">No reviews yet — be the first!</div>';
+      } else {
+        summary.innerHTML = `
+          <span class="rating-avg">★ ${data.avg_rating}</span>
+          <span class="rating-count">(${data.review_count} review${data.review_count === 1 ? '' : 's'})</span>`;
+      }
+
+      const list = document.getElementById('review-list');
+      list.innerHTML = data.reviews.map(r => `
+        <div class="review">
+          <div class="review-header">
+            <span class="review-name">${r.name}</span>
+            <span class="review-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
+          </div>
+          ${r.comment ? `<div class="review-comment">${escapeHtml(r.comment)}</div>` : ''}
+        </div>`).join('');
+
+      document.getElementById('review-form').style.display = 'flex';
+      const myReview = data.reviews.find(r => r.user_id === user.id);
+      if (myReview) {
+        selectedRating = myReview.rating;
+        highlightStars(selectedRating);
+        document.getElementById('review-comment').value = myReview.comment || '';
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function submitReview() {
+    if (selectedRating === 0) {
+      showToast('Please select a star rating.', 'error');
+      return;
+    }
+    const comment = document.getElementById('review-comment').value.trim();
+    try {
+      const res = await fetch(`${API}/groups/${groupId}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ rating: selectedRating, comment })
+      });
+      const data = await res.json();
+      if (!res.ok) return showToast(data.message, 'error');
+      showToast('Review saved!', 'success');
+      loadReviews();
+    } catch (err) {
+      showToast('Could not save review.', 'error');
+    }
+  }
+
+  initStarInput();
+  loadGroup();
+  loadMessages();
+  loadReviews();
 </script>
 </body>
 </html>

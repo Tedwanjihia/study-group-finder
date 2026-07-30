@@ -55,6 +55,9 @@ router.patch('/password', auth, async (req, res) => {
     return res.status(400).json({ message: 'Both fields are required.' });
   try {
     const result = await pool.query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
     const match = await bcrypt.compare(current_password, result.rows[0].password_hash);
     if (!match) return res.status(401).json({ message: 'Current password is incorrect.' });
     const hash = await bcrypt.hash(new_password, 10);

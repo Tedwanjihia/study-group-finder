@@ -110,9 +110,11 @@ async function loadGroups() {
 
   try {
     const groupsRes = await fetch(url, { headers });
+    if (groupsRes.status === 401) return window.location.href = 'index.html';
     const groupsData = await groupsRes.json();
 
     const myRes = await fetch(`${API}/groups/my`, { headers });
+    if (myRes.status === 401) return window.location.href = 'index.html';
     const myData = await myRes.json();
 
     myGroupIds = new Set((myData.groups || []).map(g => String(g.id)));
@@ -131,6 +133,7 @@ async function loadGroups() {
 async function loadUnits() {
   try {
     const res = await fetch(`${API}/units`, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (res.status === 401) return window.location.href = 'index.html';
     const data = await res.json();
     const sel = document.getElementById('unit-filter');
     (data.units || []).forEach(u => {

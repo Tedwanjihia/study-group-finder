@@ -32,8 +32,8 @@
   <div class="tagline">Find your people. Ace your units.</div>
 
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('login')">Log in</button>
-    <button class="tab" onclick="switchTab('register')">Register</button>
+    <button class="tab active" onclick="switchTab('login', event)">Log in</button>
+    <button class="tab" onclick="switchTab('register', event)">Register</button>
   </div>
 
   <!-- LOGIN PANEL -->
@@ -105,11 +105,11 @@
 <script>
 const API = 'https://study-group-finder-api.onrender.com';
 
-function switchTab(tab) {
+function switchTab(tab, ev) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + tab).classList.add('active');
-  event.target.classList.add('active');
+  if (ev && ev.currentTarget) ev.currentTarget.classList.add('active');
 }
 
 function showError(id, msg) {
@@ -175,7 +175,7 @@ async function handleRegister() {
   const programme = document.getElementById('reg-programme').value;
   const year_of_study = document.getElementById('reg-year').value;
   const password = document.getElementById('reg-password').value;
-  const selectedUnits = [...document.querySelectorAll('#units-checkboxes input:checked')].map(cb => cb.value);
+  const selectedUnits = [...document.querySelectorAll('#units-checkboxes input:checked')].map(cb => Number(cb.value));
 
   if (!name || !email || !programme || !year_of_study || !password)
     return showError('register-error', 'Please fill in all fields.');

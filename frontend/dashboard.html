@@ -130,6 +130,7 @@
         fetch(`${API}/groups/my`, { headers }),
         fetch(`${API}/notifications`, { headers })
       ]);
+      if (groupsRes.status === 401 || notifsRes.status === 401) return window.location.href = 'index.html';
 
       const groupsData = await groupsRes.json();
       const notifsData = await notifsRes.json();
