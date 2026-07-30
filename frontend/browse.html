@@ -174,7 +174,7 @@ function renderGroups(groups) {
     return `
       <div class="group-card">
         <div>
-          <div class="group-name">${g.name}</div>
+          <div class="group-name" style="cursor:pointer" onclick="window.location.href='group.html?id=${g.id}'">${g.name}</div>
           <div class="group-unit">${g.unit_code} — ${g.unit_name}</div>
           <div class="group-meta">
             <span>👥 ${count} / ${g.max_members}</span>

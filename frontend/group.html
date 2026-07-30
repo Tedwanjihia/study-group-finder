@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Group — Study Group Finder</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f0; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: white; border-bottom: 1px solid #e0e0d8; }
+    .logo { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+    .logo span { color: #185fa5; }
+    .nav-links { display: flex; align-items: center; gap: 20px; }
+    .nav-link { font-size: 13px; color: #888; text-decoration: none; cursor: pointer; }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #185fa5; }
+    .main { max-width: 720px; margin: 0 auto; padding: 28px 20px; }
+    .back { font-size: 13px; color: #185fa5; cursor: pointer; margin-bottom: 20px; display: inline-block; text-decoration: none; }
+    .back:hover { text-decoration: underline; }
+    .card { background: white; border: 1px solid #e0e0d8; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+    .group-name { font-size: 22px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
+    .group-unit { font-size: 14px; color: #185fa5; margin-bottom: 16px; }
+    .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .meta-item { background: #f5f5f0; border-radius: 8px; padding: 12px; }
+    .meta-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .meta-val { font-size: 14px; font-weight: 500; color: #1a1a1a; }
+    .btn { padding: 9px 20px; background: #185fa5; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .btn:hover { background: #0c447c; }
+    .btn:disabled { background: #aaa; cursor: not-allowed; }
+    .btn-danger { padding: 9px 20px; background: white; color: #a32d2d; border: 1px solid #a32d2d; border-radius: 8px; font-size: 13px; cursor: pointer; }
+    .btn-danger:hover { background: #fff0f0; }
+    .btn-outline { padding: 9px 20px; background: white; color: #888; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 13px; cursor: not-allowed; }
+    .section-title { font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #f0f0e8; }
+    .member-list { display: flex; flex-direction: column; gap: 8px; }
+    .member { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid #e0e0d8; border-radius: 8px; background: white; }
+    .member-avatar { width: 36px; height: 36px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #185fa5; flex-shrink: 0; }
+    .member-name { font-size: 14px; font-weight: 500; color: #1a1a1a; }
+    .member-info { font-size: 12px; color: #888; }
+    .badge-creator { background: #e6f1fb; color: #185fa5; font-size: 11px; padding: 2px 8px; border-radius: 20px; margin-left: 8px; }
+    .badge-open { background: #f0fff4; color: #276749; font-size: 12px; padding: 3px 10px; border-radius: 20px; }
+    .badge-full { background: #fff0f0; color: #a32d2d; font-size: 12px; padding: 3px 10px; border-radius: 20px; }
+    .status-row { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: white; padding: 12px 20px; border-radius: 8px; font-size: 13px; display: none; z-index: 999; }
+    .toast.success { background: #276749; }
+    .toast.error { background: #a32d2d; }
+    .logout { font-size: 13px; color: #e24b4a; cursor: pointer; background: none; border: none; }
+    .empty { text-align: center; padding: 24px; color: #888; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">Study Group <span>Finder</span></div>
+  <div class="nav-links">
+    <a class="nav-link" href="dashboard.html">Dashboard</a>
+    <a class="nav-link" href="browse.html">Browse groups</a>
+    <a class="nav-link" href="notifications.html">Notifications</a>
+    <a class="nav-link" href="profile.html">Profile</a>
+    <div class="avatar" id="avatar">?</div>
+    <button class="logout" onclick="logout()">Log out</button>
+  </div>
+</nav>
+
+<div class="main">
+  <a class="back" href="browse.html">← Back to groups</a>
+
+  <div class="card" id="group-info">
+    <div class="empty">Loading group...</div>
+  </div>
+
+  <div class="card">
+    <div class="section-title" id="members-title">Members</div>
+    <div class="member-list" id="member-list">
+      <div class="empty">Loading members...</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = 'https://study-group-finder-api.onrender.com';
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+  if (!token || !user) window.location.href = 'index.html';
+
+  document.getElementById('avatar').textContent = user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+  const params = new URLSearchParams(window.location.search);
+  const groupId = params.get('id');
+
+  if (!groupId) window.location.href = 'browse.html';
+
+  function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = 'index.html';
+  }
+
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + (type || '');
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 3000);
+  }
+
+  function getInitials(name) {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  }
+
+  let groupData = null;
+
+  async function loadGroup() {
+    try {
+      const res = await fetch(`${API}/groups/${groupId}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      groupData = data.group;
+      renderGroupInfo(groupData);
+      renderMembers(data.members || []);
+    } catch (err) {
+      console.error(err);
+      document.getElementById('group-info').innerHTML = '<div class="empty">Failed to load group.</div>';
+    }
+  }
+
+  function renderGroupInfo(g) {
+    const count = parseInt(g.member_count) || 0;
+    const isFull = count >= g.max_members;
+    const isCreator = g.creator_id === user.id;
+    const isMember = g.is_member;
+
+    let actionBtn = '';
+    if (isCreator) {
+      actionBtn = '<button class="btn-outline" disabled>You created this group</button>';
+    } else if (isMember) {
+      actionBtn = `<button class="btn-danger" onclick="leaveGroup()">Leave group</button>`;
+    } else if (isFull) {
+      actionBtn = '<button class="btn-outline" disabled>Group is full</button>';
+    } else {
+      actionBtn = `<button class="btn" onclick="joinGroup()">Join group</button>`;
+    }
+
+    document.getElementById('group-info').innerHTML = `
+      <div class="group-name">${g.name}</div>
+      <div class="group-unit">${g.unit_code} — ${g.unit_name}</div>
+      <div class="status-row">
+        <span class="${isFull ? 'badge-full' : 'badge-open'}">${isFull ? 'Full' : 'Open'}</span>
+        ${actionBtn}
+      </div>
+      <div class="meta-grid">
+        <div class="meta-item">
+          <div class="meta-label">Members</div>
+          <div class="meta-val">${count} / ${g.max_members}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Schedule</div>
+          <div class="meta-val">${g.schedule || 'TBD'}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Venue</div>
+          <div class="meta-val">${g.venue || 'TBD'}</div>
+        </div>
+      </div>`;
+  }
+
+  function renderMembers(members) {
+    document.getElementById('members-title').textContent = `Members (${members.length})`;
+    const ml = document.getElementById('member-list');
+    if (members.length === 0) {
+      ml.innerHTML = '<div class="empty">No members yet.</div>';
+      return;
+    }
+    ml.innerHTML = members.map(m => `
+      <div class="member">
+        <div class="member-avatar">${getInitials(m.name)}</div>
+        <div>
+          <div class="member-name">
+            ${m.name}
+            ${m.id === groupData.creator_id ? '<span class="badge-creator">Creator</span>' : ''}
+          </div>
+          <div class="member-info">${m.programme || 'USIU-Africa'} · Year ${m.year_of_study || '—'}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  async function joinGroup() {
+    try {
+      const res = await fetch(`${API}/groups/${groupId}/join`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (!res.ok) showToast(data.message, 'error');
+      else { showToast('Joined successfully!', 'success'); loadGroup(); }
+    } catch (err) { showToast('Server error.', 'error'); }
+  }
+
+  async function leaveGroup() {
+    if (!confirm('Are you sure you want to leave this group?')) return;
+    try {
+      const res = await fetch(`${API}/groups/${groupId}/leave`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (!res.ok) showToast(data.message, 'error');
+      else { showToast('You have left the group.', 'success'); loadGroup(); }
+    } catch (err) { showToast('Server error.', 'error'); }
+  }
+
+  loadGroup();
+</script>
+</body>
+</html>

@@ -113,5 +113,33 @@ router.delete('/:id/leave', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 });
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const groupRes = await pool.query(`
+      SELECT sg.*, cu.code as unit_code, cu.name as unit_name,
+        COUNT(gm.user_id) as member_count,
+        EXISTS(SELECT 1 FROM group_members WHERE group_id = sg.id AND user_id = $2) as is_member
+      FROM study_groups sg
+      JOIN course_units cu ON cu.id = sg.unit_id
+      LEFT JOIN group_members gm ON gm.group_id = sg.id
+      WHERE sg.id = $1
+      GROUP BY sg.id, cu.code, cu.name
+    `, [req.params.id, req.user.id]);
 
+    if (groupRes.rows.length === 0) return res.status(404).json({ message: 'Group not found.' });
+
+    const membersRes = await pool.query(`
+      SELECT u.id, u.name, u.programme, u.year_of_study
+      FROM users u
+      JOIN group_members gm ON gm.user_id = u.id
+      WHERE gm.group_id = $1
+      ORDER BY gm.joined_at ASC
+    `, [req.params.id]);
+
+    res.json({ group: groupRes.rows[0], members: membersRes.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
 module.exports = router;
