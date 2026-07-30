@@ -73,4 +73,44 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Post a new message to a group (members only)
+router.post('/:id/messages', auth, async (req, res) => {
+  const { message } = req.body;
+  if (!message || !message.trim()) {
+    return res.status(400).json({ message: 'Message cannot be empty.' });
+  }
+  try {
+    const memberCheck = await pool.query(
+      'SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2',
+      [req.params.id, req.user.id]
+    );
+    const isCreator = await pool.query(
+      'SELECT 1 FROM study_groups WHERE id = $1 AND creator_id = $2',
+      [req.params.id, req.user.id]
+    );
+    if (memberCheck.rows.length === 0 && isCreator.rows.length === 0) {
+      return res.status(403).json({ message: 'You must be a member of this group to send messages.' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO group_messages (group_id, user_id, message)
+      VALUES ($1, $2, $3)
+      RETURNING id, message, created_at
+    `, [req.params.id, req.user.id, message.trim()]);
+
+    const userRes = await pool.query('SELECT name FROM users WHERE id = $1', [req.user.id]);
+
+    res.status(201).json({
+      id: result.rows[0].id,
+      message: result.rows[0].message,
+      created_at: result.rows[0].created_at,
+      user_id: req.user.id,
+      name: userRes.rows[0]?.name || 'You'
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
 module.exports = router;
