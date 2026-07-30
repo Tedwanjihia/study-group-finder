@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Group — Study Group Finder</title>
   <style>
+.chat-box { display: flex; flex-direction: column; height: 420px; }
+.chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 4px 12px; }
+.msg { max-width: 75%; padding: 8px 12px; border-radius: 10px; font-size: 13px; line-height: 1.4; }
+.msg-mine { align-self: flex-end; background: #185fa5; color: white; }
+.msg-other { align-self: flex-start; background: #f5f5f0; color: #1a1a1a; }
+.msg-sender { font-size: 11px; font-weight: 600; margin-bottom: 3px; opacity: 0.8; }
+.msg-time { font-size: 10px; opacity: 0.6; margin-top: 3px; }
+.chat-input-row { display: flex; gap: 8px; margin-top: 12px; }
+.chat-input { flex: 1; padding: 10px 12px; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 13px; outline: none; }
+.chat-input:focus { border-color: #185fa5; }
+.chat-send { padding: 10px 18px; background: #185fa5; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.chat-send:hover { background: #0c447c; }
+.chat-send:disabled { background: #aaa; cursor: not-allowed; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, sans-serif; background: #f5f5f0; }
     .nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: white; border-bottom: 1px solid #e0e0d8; }
@@ -66,6 +79,19 @@
   <div class="card" id="group-info">
     <div class="empty">Loading group...</div>
   </div>
+
+<div class="card">
+  <div class="section-title">Group chat</div>
+  <div class="chat-box">
+    <div class="chat-messages" id="chat-messages">
+      <div class="empty">Loading messages...</div>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" class="chat-input" id="chat-input" placeholder="Write a message..." maxlength="500" onkeydown="if(event.key==='Enter') sendMessage()">
+      <button class="chat-send" id="chat-send-btn" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+</div>
 
   <div class="card">
     <div class="section-title" id="members-title">Members</div>
@@ -210,6 +236,84 @@
       else { showToast('You have left the group.', 'success'); loadGroup(); }
     } catch (err) { showToast('Server error.', 'error'); }
   }
+
+  let chatPollInterval = null;
+let lastMessageCount = 0;
+
+async function loadMessages(isPoll) {
+  try {
+    const res = await fetch(`${API}/groups/${groupId}/messages`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (!isPoll) document.getElementById('chat-messages').innerHTML = `<div class="empty">${data.message}</div>`;
+      return;
+    }
+    if (data.messages.length !== lastMessageCount) {
+      renderMessages(data.messages);
+      lastMessageCount = data.messages.length;
+    }
+  } catch (err) {
+    if (!isPoll) document.getElementById('chat-messages').innerHTML = '<div class="empty">Could not load messages.</div>';
+  }
+}
+
+function renderMessages(messages) {
+  const box = document.getElementById('chat-messages');
+  if (messages.length === 0) {
+    box.innerHTML = '<div class="empty">No messages yet. Say hello!</div>';
+    return;
+  }
+  const wasAtBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
+  box.innerHTML = messages.map(m => {
+    const mine = m.user_id === user.id;
+    const time = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `
+      <div class="msg ${mine ? 'msg-mine' : 'msg-other'}">
+        ${mine ? '' : `<div class="msg-sender">${m.name}</div>`}
+        ${escapeHtml(m.message)}
+        <div class="msg-time">${time}</div>
+      </div>`;
+  }).join('');
+  if (wasAtBottom || messages.length <= 1) box.scrollTop = box.scrollHeight;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const btn = document.getElementById('chat-send-btn');
+  const text = input.value.trim();
+  if (!text) return;
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${API}/groups/${groupId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ message: text })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.message, 'error');
+    } else {
+      input.value = '';
+      loadMessages();
+    }
+  } catch (err) {
+    showToast('Could not send message.', 'error');
+  } finally {
+    btn.disabled = false;
+    input.focus();
+  }
+}
+
+loadMessages();
+chatPollInterval = setInterval(() => loadMessages(true), 4000);
 
   loadGroup();
 </script>
