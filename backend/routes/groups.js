@@ -7,12 +7,14 @@ router.get('/my', auth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT sg.*, cu.code as unit_code, cu.name as unit_name,
-        COUNT(gm2.user_id) as member_count
-      FROM study_groups sg
-      JOIN group_members gm ON gm.group_id = sg.id AND gm.user_id = $1
-      JOIN course_units cu ON cu.id = sg.unit_id
-      LEFT JOIN group_members gm2 ON gm2.group_id = sg.id
-      WHERE sg.is_active = true
+      COUNT(DISTINCT gm.user_id) as member_count,
+      ROUND(AVG(gr.rating)::numeric, 1) as avg_rating,
+      COUNT(DISTINCT gr.id) as review_count
+    FROM study_groups sg
+    JOIN course_units cu ON cu.id = sg.unit_id
+    LEFT JOIN group_members gm ON gm.group_id = sg.id
+    LEFT JOIN group_reviews gr ON gr.group_id = sg.id
+    WHERE sg.is_active = true
       GROUP BY sg.id, cu.code, cu.name
       ORDER BY sg.created_at DESC
     `, [req.user.id]);
@@ -207,6 +209,79 @@ router.post('/:id/messages', auth, async (req, res) => {
       created_at: result.rows[0].created_at,
       user_id: req.user.id,
       name: userRes.rows[0]?.name || 'You'
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// Get a group's reviews and average rating
+router.get('/:id/reviews', auth, async (req, res) => {
+  try {
+    const reviewsRes = await pool.query(`
+      SELECT gr.id, gr.rating, gr.comment, gr.created_at, u.id as user_id, u.name
+      FROM group_reviews gr
+      JOIN users u ON u.id = gr.user_id
+      WHERE gr.group_id = $1
+      ORDER BY gr.created_at DESC
+    `, [req.params.id]);
+
+    const avgRes = await pool.query(`
+      SELECT ROUND(AVG(rating)::numeric, 1) as avg_rating, COUNT(*) as review_count
+      FROM group_reviews
+      WHERE group_id = $1
+    `, [req.params.id]);
+
+    res.json({
+      reviews: reviewsRes.rows,
+      avg_rating: avgRes.rows[0].avg_rating || null,
+      review_count: parseInt(avgRes.rows[0].review_count)
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// Submit or update a review (members only, one per user per group)
+router.post('/:id/reviews', auth, async (req, res) => {
+  const { rating, comment } = req.body;
+  const groupId = req.params.id;
+
+  if (!rating || rating < 1 || rating > 5) {
+    return res.status(400).json({ message: 'Rating must be between 1 and 5.' });
+  }
+
+  try {
+    const memberCheck = await pool.query(
+      'SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2',
+      [groupId, req.user.id]
+    );
+    const isCreator = await pool.query(
+      'SELECT 1 FROM study_groups WHERE id = $1 AND creator_id = $2',
+      [groupId, req.user.id]
+    );
+    if (memberCheck.rows.length === 0 && isCreator.rows.length === 0) {
+      return res.status(403).json({ message: 'You must be a member of this group to leave a review.' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO group_reviews (group_id, user_id, rating, comment)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (group_id, user_id)
+      DO UPDATE SET rating = $3, comment = $4, created_at = NOW()
+      RETURNING id, rating, comment, created_at
+    `, [groupId, req.user.id, rating, comment || null]);
+
+    res.status(201).json({
+      message: 'Review saved.',
+      id: result.rows[0].id,
+      rating: result.rows[0].rating,
+      comment: result.rows[0].comment,
+      created_at: result.rows[0].created_at,
+      user_id: req.user.id,
+      name: req.user.name
     });
   } catch (err) {
     console.error(err);
