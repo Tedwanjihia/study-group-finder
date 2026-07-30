@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const pool = require('../models/db');
@@ -98,6 +97,7 @@ router.post('/:id/join', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 });
+
 router.delete('/:id/leave', auth, async (req, res) => {
   const groupId = req.params.id;
   try {
@@ -113,6 +113,7 @@ router.delete('/:id/leave', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 });
+
 router.get('/:id', auth, async (req, res) => {
   try {
     const groupRes = await pool.query(`
@@ -142,6 +143,7 @@ router.get('/:id', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 });
+
 // Get all messages for a group (members only)
 router.get('/:id/messages', auth, async (req, res) => {
   try {
@@ -191,17 +193,20 @@ router.post('/:id/messages', auth, async (req, res) => {
       return res.status(403).json({ message: 'You must be a member of this group to send messages.' });
     }
 
-    const result = await pool.query(
-      'INSERT INTO group_messages (group_id, user_id, message) VALUES ($1, $2, $3) RETURNING id, message, created_at',
-      [req.params.id, req.user.id, message.trim()]
-    );
+    const result = await pool.query(`
+      INSERT INTO group_messages (group_id, user_id, message)
+      VALUES ($1, $2, $3)
+      RETURNING id, message, created_at
+    `, [req.params.id, req.user.id, message.trim()]);
+
+    const userRes = await pool.query('SELECT name FROM users WHERE id = $1', [req.user.id]);
 
     res.status(201).json({
       id: result.rows[0].id,
       message: result.rows[0].message,
       created_at: result.rows[0].created_at,
       user_id: req.user.id,
-      name: req.user.name || null
+      name: userRes.rows[0]?.name || 'You'
     });
   } catch (err) {
     console.error(err);
