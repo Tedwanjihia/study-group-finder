@@ -164,8 +164,8 @@ function renderGroups(groups) {
       : '<span class="badge-open">Open</span>';
     let btn = '';
     if (g.isMember) {
-  badge = '<span class="badge-member">Joined</span>';
-  btn = `<button class="btn-danger-sm" onclick="leaveGroup(${g.id}, this)">Leave</button>`;
+      badge = '<span class="badge-member">Joined</span>';
+      btn = `<button class="btn-danger-sm" onclick="leaveGroup(${g.id}, this)">Leave</button>`;
     } else if (isFull) {
       btn = '<button class="btn-full" disabled>Full</button>';
     } else {
@@ -176,6 +176,7 @@ function renderGroups(groups) {
         <div>
           <div class="group-name" style="cursor:pointer" onclick="window.location.href='group.html?id=${g.id}'">${g.name}</div>
           <div class="group-unit">${g.unit_code} — ${g.unit_name}</div>
+          ${g.avg_rating ? `<div style="font-size:12px;color:#f5a623;margin-bottom:6px">★ ${g.avg_rating} (${g.review_count})</div>` : ''}
           <div class="group-meta">
             <span>👥 ${count} / ${g.max_members}</span>
             <span>📅 ${g.schedule || 'TBD'}</span>

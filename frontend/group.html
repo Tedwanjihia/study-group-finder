@@ -57,6 +57,22 @@
     .toast.error { background: #a32d2d; }
     .logout { font-size: 13px; color: #e24b4a; cursor: pointer; background: none; border: none; }
     .empty { text-align: center; padding: 24px; color: #888; font-size: 14px; }
+    .stars { display: flex; gap: 4px; font-size: 22px; cursor: pointer; }
+.star { color: #ddd; transition: color 0.15s; }
+.star.filled { color: #f5a623; }
+.star:hover, .star.hover { color: #f5a623; }
+.rating-summary { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.rating-avg { font-size: 20px; font-weight: 600; color: #1a1a1a; }
+.rating-count { font-size: 13px; color: #888; }
+.review-list { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.review { padding: 12px; border: 1px solid #e0e0d8; border-radius: 8px; background: white; }
+.review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.review-name { font-size: 13px; font-weight: 600; color: #1a1a1a; }
+.review-stars { font-size: 13px; color: #f5a623; }
+.review-comment { font-size: 13px; color: #555; margin-top: 4px; }
+.review-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.review-textarea { padding: 10px 12px; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 60px; }
+.review-textarea:focus { border-color: #185fa5; outline: none; }
   </style>
 </head>
 <body>
@@ -99,6 +115,27 @@
       <div class="empty">Loading members...</div>
     </div>
   </div>
+</div>
+
+<div class="card">
+  <div class="section-title">Ratings & reviews</div>
+  <div class="rating-summary" id="rating-summary">
+    <div class="empty">Loading ratings...</div>
+  </div>
+
+  <div class="review-form" id="review-form" style="display:none">
+    <div class="stars" id="star-input">
+      <span class="star" data-val="1">★</span>
+      <span class="star" data-val="2">★</span>
+      <span class="star" data-val="3">★</span>
+      <span class="star" data-val="4">★</span>
+      <span class="star" data-val="5">★</span>
+    </div>
+    <textarea class="review-textarea" id="review-comment" placeholder="Share your experience with this group (optional)" maxlength="300"></textarea>
+    <button class="btn" style="width:fit-content" onclick="submitReview()">Submit review</button>
+  </div>
+
+  <div class="review-list" id="review-list"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -316,6 +353,90 @@ loadMessages();
 chatPollInterval = setInterval(() => loadMessages(true), 4000);
 
   loadGroup();
+
+  let selectedRating = 0;
+
+function initStarInput() {
+  const stars = document.querySelectorAll('#star-input .star');
+  stars.forEach(star => {
+    star.addEventListener('mouseenter', () => highlightStars(parseInt(star.dataset.val)));
+    star.addEventListener('mouseleave', () => highlightStars(selectedRating));
+    star.addEventListener('click', () => {
+      selectedRating = parseInt(star.dataset.val);
+      highlightStars(selectedRating);
+    });
+  });
+}
+
+function highlightStars(count) {
+  document.querySelectorAll('#star-input .star').forEach(star => {
+    star.classList.toggle('filled', parseInt(star.dataset.val) <= count);
+  });
+}
+
+async function loadReviews() {
+  try {
+    const res = await fetch(`${API}/groups/${groupId}/reviews`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (!res.ok) return;
+
+    const summary = document.getElementById('rating-summary');
+    if (data.review_count === 0) {
+      summary.innerHTML = '<div class="rating-count">No reviews yet — be the first!</div>';
+    } else {
+      summary.innerHTML = `
+        <span class="rating-avg">★ ${data.avg_rating}</span>
+        <span class="rating-count">(${data.review_count} review${data.review_count === 1 ? '' : 's'})</span>`;
+    }
+
+    const list = document.getElementById('review-list');
+    list.innerHTML = data.reviews.map(r => `
+      <div class="review">
+        <div class="review-header">
+          <span class="review-name">${r.name}</span>
+          <span class="review-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
+        </div>
+        ${r.comment ? `<div class="review-comment">${escapeHtml(r.comment)}</div>` : ''}
+      </div>`).join('');
+
+    // Show the review form only if the user is a member or creator
+    const myReview = data.reviews.find(r => r.user_id === user.id);
+    document.getElementById('review-form').style.display = 'flex';
+    if (myReview) {
+      selectedRating = myReview.rating;
+      highlightStars(selectedRating);
+      document.getElementById('review-comment').value = myReview.comment || '';
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function submitReview() {
+  if (selectedRating === 0) {
+    showToast('Please select a star rating.', 'error');
+    return;
+  }
+  const comment = document.getElementById('review-comment').value.trim();
+  try {
+    const res = await fetch(`${API}/groups/${groupId}/reviews`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ rating: selectedRating, comment })
+    });
+    const data = await res.json();
+    if (!res.ok) return showToast(data.message, 'error');
+    showToast('Review saved!', 'success');
+    loadReviews();
+  } catch (err) {
+    showToast('Could not save review.', 'error');
+  }
+}
+
+initStarInput();
+loadReviews();
 </script>
 </body>
 </html>
