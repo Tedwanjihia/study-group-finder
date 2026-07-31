@@ -5,31 +5,342 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create Group — Study Group Finder</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #f5f5f0; }
-    .nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: white; border-bottom: 1px solid #e0e0d8; }
-    .logo { font-size: 16px; font-weight: 600; color: #1a1a1a; }
-    .logo span { color: #185fa5; }
-    .nav-links { display: flex; align-items: center; gap: 20px; }
-    .nav-link { font-size: 13px; color: #888; text-decoration: none; cursor: pointer; }
-    .nav-link.active { color: #185fa5; font-weight: 500; }
-    .avatar { width: 30px; height: 30px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #185fa5; }
-    .main { max-width: 560px; margin: 0 auto; padding: 36px 20px; }
-    .page-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
-    .page-sub { font-size: 13px; color: #888; margin-bottom: 28px; }
-    .card { background: white; border: 1px solid #e0e0d8; border-radius: 12px; padding: 28px; }
-    .form-group { margin-bottom: 16px; }
-    label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 500; }
-    input, select, textarea { width: 100%; padding: 9px 12px; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 14px; color: #1a1a1a; background: white; outline: none; font-family: inherit; }
-    input:focus, select:focus, textarea:focus { border-color: #185fa5; }
-    textarea { resize: vertical; min-height: 80px; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .btn { width: 100%; padding: 10px; background: #185fa5; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 8px; }
-    .btn:hover { background: #0c447c; }
-    .btn:disabled { background: #aaa; cursor: not-allowed; }
-    .error { background: #fff0f0; color: #a32d2d; font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; display: none; }
-    .success { background: #f0fff4; color: #276749; font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; display: none; }
-    .logout { font-size: 13px; color: #e24b4a; cursor: pointer; background: none; border: none; }
+    :root {
+      --bg: #071120;
+      --surface: rgba(255,255,255,0.95);
+      --surface-soft: #f3f7ff;
+      --text: #11254d;
+      --muted: #5b6c88;
+      --accent: #3b82f6;
+      --accent-dark: #1d4ed8;
+      --border: rgba(15,23,42,0.12);
+      --shadow: 0 24px 70px rgba(2,8,23,0.16);
+      --danger: #dc2626;
+      --success: #10b981;
+    }
+
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,0.24), transparent 24%),
+        linear-gradient(135deg, #071120 0%, #11213f 42%, #21468f 100%);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: -1;
+      filter: blur(14px);
+      opacity: 0.7;
+    }
+
+    body::before {
+      width: 320px;
+      height: 320px;
+      top: -90px;
+      right: -80px;
+      background: radial-gradient(circle, rgba(59,130,246,0.25), transparent 72%);
+    }
+
+    body::after {
+      width: 280px;
+      height: 280px;
+      bottom: -70px;
+      left: -70px;
+      background: radial-gradient(circle, rgba(96,165,250,0.22), transparent 72%);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.5rem;
+      background: linear-gradient(90deg, rgba(8,16,31,0.97), rgba(17,34,62,0.95));
+      border-bottom: 1px solid rgba(255,255,255,0.16);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 35px rgba(2,8,23,0.16);
+    }
+
+    .logo {
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #f8fbff;
+    }
+
+    .logo span {
+      color: #8cc2ff;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      align-items: center;
+    }
+
+    .nav-link {
+      font-size: 0.95rem;
+      color: rgba(248,251,255,0.86);
+      text-decoration: none;
+      padding: 0.55rem 0.85rem;
+      border-radius: 999px;
+      transition: all 0.18s ease;
+    }
+
+    .nav-link.active,
+    .nav-link:hover {
+      background: rgba(255,255,255,0.16);
+      color: #ffffff;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #dbeafe;
+      background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(96,165,250,0.18));
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+
+    .main {
+      max-width: 680px;
+      margin: 2rem auto;
+      padding: 0 1.5rem 2.5rem;
+    }
+
+    .create-hero,
+    .card {
+      animation: riseIn 0.45s ease both;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .create-hero:hover,
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 22px 50px rgba(2,8,23,0.14);
+    }
+
+    .create-hero {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      background: linear-gradient(135deg, rgba(59,130,246,0.16), rgba(255,255,255,0.95));
+      border: 1px solid rgba(59,130,246,0.16);
+      border-radius: 28px;
+      padding: 1.35rem 1.4rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.2rem;
+    }
+
+    .create-hero::before,
+    .create-hero::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: -1;
+      background: rgba(59,130,246,0.14);
+    }
+
+    .create-hero::before {
+      width: 180px;
+      height: 180px;
+      top: -70px;
+      right: -50px;
+      filter: blur(8px);
+    }
+
+    .create-hero::after {
+      width: 140px;
+      height: 140px;
+      bottom: -60px;
+      left: -40px;
+      filter: blur(8px);
+    }
+
+    .hero-pill {
+      display: inline-flex;
+      padding: 0.45rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(59,130,246,0.12);
+      color: var(--accent-dark);
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+
+    .page-title {
+      font-size: clamp(1.8rem, 2.4vw, 2.6rem);
+      font-weight: 800;
+      margin-bottom: 0.45rem;
+    }
+
+    .page-sub {
+      color: var(--muted);
+      margin-bottom: 0;
+      line-height: 1.75;
+    }
+
+    .card {
+      position: relative;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 2rem;
+      box-shadow: var(--shadow);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: auto -20px -20px auto;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(59,130,246,0));
+      pointer-events: none;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      color: #334155;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: white;
+      padding: 1rem 1rem;
+      font-size: 0.96rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+      font-family: inherit;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: rgba(51,102,255,0.45);
+      box-shadow: 0 0 0 6px rgba(51,102,255,0.1);
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 1rem 1rem;
+      border-radius: 18px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease;
+      margin-top: 1rem;
+    }
+
+    .btn:hover {
+      background: var(--accent-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      background: #a0aec0;
+      cursor: not-allowed;
+    }
+
+    .error,
+    .success {
+      padding: 1rem 1rem;
+      border-radius: 18px;
+      font-size: 0.95rem;
+      margin-bottom: 1.2rem;
+      display: none;
+    }
+
+    .error {
+      background: rgba(214,69,83,0.12);
+      color: #9d2f3d;
+    }
+
+    .success {
+      background: rgba(31,122,95,0.12);
+      color: #164c3b;
+    }
+
+    .logout {
+      border: none;
+      background: transparent;
+      color: #d64553;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    @media (max-width: 720px) {
+      .main {
+        margin: 1.5rem auto;
+        padding: 0 1rem 2rem;
+      }
+
+      .row {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -46,8 +357,11 @@
 </nav>
 
 <div class="main">
-  <div class="page-title">Create a study group</div>
-  <div class="page-sub">Set up a group for your classmates to join.</div>
+  <div class="create-hero">
+    <div class="hero-pill">Launch</div>
+    <div class="page-title">Create a study group</div>
+    <div class="page-sub">Set up a focused study circle for your classmates to join and collaborate with.</div>
+  </div>
   <div class="card">
     <div class="error" id="error"></div>
     <div class="success" id="success"></div>
@@ -101,13 +415,54 @@
     window.location.href = 'index.html';
   }
 
-       const res = await fetch(`${API}/groups`, {
-         method: 'POST',
-         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-         body: JSON.stringify({ name, unit_id, max_members, schedule, venue })
-       });
-       if (res.status === 401) return window.location.href = 'index.html';
-       const data = await res.json();
+  const fallbackUnits = [
+    { id: 101, code: 'CSCI 101', name: 'Introduction to Programming' },
+    { id: 102, code: 'CSCI 102', name: 'Data Structures and Algorithms' },
+    { id: 103, code: 'CSCI 201', name: 'Discrete Mathematics' },
+    { id: 104, code: 'CSCI 202', name: 'Software Engineering' },
+    { id: 105, code: 'CSCI 203', name: 'Database Systems' },
+    { id: 106, code: 'MATH 101', name: 'Calculus I' },
+    { id: 107, code: 'MATH 102', name: 'Calculus II' },
+    { id: 108, code: 'STAT 201', name: 'Probability and Statistics' },
+    { id: 109, code: 'BUS 201', name: 'Business Communication' },
+    { id: 110, code: 'COMM 301', name: 'Media and Society' },
+    { id: 111, code: 'ENG 201', name: 'Academic Writing' },
+    { id: 112, code: 'PSY 201', name: 'Introduction to Psychology' },
+    { id: 113, code: 'LAW 101', name: 'Legal Foundations' },
+    { id: 114, code: 'ECON 101', name: 'Microeconomics' },
+    { id: 115, code: 'ECON 102', name: 'Macroeconomics' },
+    { id: 116, code: 'FIN 201', name: 'Principles of Finance' },
+    { id: 117, code: 'MKT 201', name: 'Marketing Principles' },
+    { id: 118, code: 'PHYS 101', name: 'Physics I' },
+    { id: 119, code: 'CHEM 101', name: 'Chemistry I' },
+    { id: 120, code: 'EDU 201', name: 'Teaching and Learning' }
+  ];
+
+  function renderUnitOptions(units) {
+    const select = document.getElementById('unit_id');
+    select.innerHTML = '<option value="">Select a unit</option>';
+    (units || fallbackUnits).forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = String(u.id);
+      opt.textContent = `${u.code} — ${u.name}`;
+      select.appendChild(opt);
+    });
+  }
+
+  async function loadUnits() {
+    try {
+      const res = await fetch(`${API}/units`, { headers: { 'Authorization': 'Bearer ' + token } });
+      if (res.ok) {
+        const data = await res.json();
+        const units = Array.isArray(data.units) && data.units.length ? data.units : fallbackUnits;
+        renderUnitOptions(units);
+      } else {
+        renderUnitOptions(fallbackUnits);
+      }
+    } catch (err) {
+      renderUnitOptions(fallbackUnits);
+    }
+  }
 
   async function createGroup() {
     const name = document.getElementById('name').value.trim();

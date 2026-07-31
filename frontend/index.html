@@ -5,101 +5,533 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Study Group Finder</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #f5f5f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-    .container { background: white; border-radius: 12px; border: 1px solid #e0e0d8; padding: 36px; width: 100%; max-width: 420px; }
-    .logo { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
-    .logo span { color: #185fa5; }
-    .tagline { font-size: 13px; color: #888; margin-bottom: 28px; }
-    .tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 1px solid #e0e0d8; }
-    .tab { flex: 1; padding: 10px; font-size: 14px; text-align: center; cursor: pointer; color: #888; border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; border-top: none; border-left: none; border-right: none; }
-    .tab.active { color: #185fa5; border-bottom-color: #185fa5; font-weight: 500; }
-    .form-group { margin-bottom: 14px; }
-    label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; }
-    input, select { width: 100%; padding: 9px 12px; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 14px; color: #1a1a1a; background: white; outline: none; }
-    input:focus, select:focus { border-color: #185fa5; }
-    .btn { width: 100%; padding: 10px; background: #185fa5; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 6px; }
-    .btn:hover { background: #0c447c; }
-    .error { background: #fff0f0; color: #a32d2d; font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; display: none; }
-    .success { background: #f0fff4; color: #276749; font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; display: none; }
-    .panel { display: none; }
-    .panel.active { display: block; }
+    :root {
+      --bg: #eef5ff;
+      --surface: rgba(255,255,255,0.97);
+      --surface-soft: #f8faff;
+      --text: #102a43;
+      --muted: #586380;
+      --accent: #3366ff;
+      --accent-dark: #254eda;
+      --border: rgba(15,23,42,0.12);
+      --shadow: 0 25px 70px rgba(2, 8, 23, 0.18);
+      --danger: #d64553;
+      --success: #1f7a5f;
+    }
+
+    @keyframes floatGlow {
+      0% { transform: translate3d(0, 0, 0) scale(1); }
+      100% { transform: translate3d(10px, -16px, 0) scale(1.06); }
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #071120 0%, #12213d 45%, #1f3d78 100%);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: -1;
+      filter: blur(6px);
+      opacity: 0.65;
+      animation: floatGlow 7s ease-in-out infinite alternate;
+    }
+
+    body::before {
+      width: 320px;
+      height: 320px;
+      top: -90px;
+      right: -70px;
+      background: radial-gradient(circle, rgba(51,102,255,0.32), transparent 72%);
+    }
+
+    body::after {
+      width: 280px;
+      height: 280px;
+      bottom: -70px;
+      left: -70px;
+      background: radial-gradient(circle, rgba(87, 140, 255, 0.28), transparent 72%);
+      animation-duration: 9s;
+    }
+
+    .page-shell {
+      width: min(100%, 1120px);
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 1.5rem;
+      align-items: center;
+    }
+
+    .hero-panel,
+    .container {
+      animation: riseIn 0.45s ease both;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .hero-panel:hover,
+    .container:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 22px 50px rgba(2,8,23,0.14);
+    }
+
+    .hero-panel {
+      position: relative;
+      overflow: hidden;
+      padding: 2.3rem;
+      min-height: 570px;
+      border-radius: 32px;
+      background: linear-gradient(135deg, rgba(20,53,142,0.98), rgba(51,102,255,0.9));
+      color: white;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .hero-panel::before,
+    .hero-panel::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.13);
+      pointer-events: none;
+    }
+
+    .hero-panel::before {
+      width: 220px;
+      height: 220px;
+      top: -60px;
+      right: -40px;
+      filter: blur(8px);
+    }
+
+    .hero-panel::after {
+      width: 180px;
+      height: 180px;
+      bottom: -50px;
+      left: -30px;
+      filter: blur(8px);
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      width: max-content;
+      padding: 0.55rem 0.9rem;
+      margin-bottom: 1rem;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .hero-panel h1 {
+      font-size: clamp(1.9rem, 2.7vw, 2.7rem);
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      max-width: 22rem;
+    }
+
+    .hero-panel p {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.9);
+      max-width: 31rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .feature-list {
+      list-style: none;
+      display: grid;
+      gap: 0.75rem;
+      margin: 1rem 0 1.4rem;
+    }
+
+    .feature-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      font-size: 0.97rem;
+    }
+
+    .feature-list li::before {
+      content: '✓';
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.35rem;
+      height: 1.35rem;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .hero-card {
+      margin-top: auto;
+      padding: 1rem 1.1rem;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.2);
+      backdrop-filter: blur(14px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .hero-card strong {
+      display: block;
+      font-size: 0.98rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .hero-card p {
+      margin: 0;
+      font-size: 0.92rem;
+      color: rgba(255,255,255,0.83);
+    }
+
+    .hero-card span {
+      padding: 0.55rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.16);
+      font-size: 0.82rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .container {
+      width: 100%;
+      padding: 2.2rem 1.9rem;
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.7);
+      border-radius: 32px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .logo {
+      font-size: 1.48rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+    }
+
+    .logo span {
+      color: var(--accent);
+    }
+
+    .tagline {
+      color: var(--muted);
+      font-size: 0.97rem;
+      line-height: 1.7;
+      margin-bottom: 1.6rem;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.7rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .tab {
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface-soft);
+      color: var(--muted);
+      padding: 0.95rem 1rem;
+      font-size: 0.96rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 700;
+    }
+
+    .tab:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(51, 102, 255, 0.09);
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: white;
+      border-color: rgba(51,102,255,0.35);
+      box-shadow: 0 12px 30px rgba(51,102,255,0.14);
+    }
+
+    .form-group {
+      margin-bottom: 1.1rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.95rem;
+      color: #334155;
+      font-weight: 700;
+      margin-bottom: 0.55rem;
+    }
+
+    input,
+    select {
+      width: 100%;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: white;
+      padding: 0.95rem 1rem;
+      font-size: 0.96rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: rgba(51,102,255,0.45);
+      box-shadow: 0 0 0 6px rgba(51,102,255,0.1);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 1rem 1rem;
+      border-radius: 18px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent) 0%, #4f7cff 100%);
+      color: white;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+      box-shadow: 0 12px 24px rgba(51,102,255,0.16);
+    }
+
+    .btn:hover {
+      filter: brightness(1.04);
+      transform: translateY(-1px);
+      box-shadow: 0 16px 30px rgba(51,102,255,0.2);
+    }
+
+    .error,
+    .success {
+      padding: 1rem 1rem;
+      border-radius: 18px;
+      font-size: 0.95rem;
+      margin-bottom: 1.1rem;
+      display: none;
+    }
+
+    .error {
+      background: rgba(214,69,83,0.12);
+      color: #9d2f3d;
+    }
+
+    .success {
+      background: rgba(31,122,95,0.12);
+      color: #164c3b;
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+      animation: fadeSlideIn 0.25s ease;
+    }
+
+    #units-checkboxes {
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: var(--surface-soft);
+      padding: 1rem;
+      max-height: 14rem;
+      overflow-y: auto;
+    }
+
+    #units-checkboxes label,
+    .unit-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.55rem 0;
+      color: var(--text);
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    .unit-checkbox input {
+      width: auto;
+      margin: 0;
+    }
+
+    .hint-text {
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 920px) {
+      .page-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-panel {
+        min-height: auto;
+      }
+    }
+
+    @media (max-width: 560px) {
+      body {
+        padding: 1rem;
+      }
+
+      .container {
+        padding: 1.5rem 1.1rem;
+      }
+
+      .hero-panel {
+        padding: 1.45rem;
+      }
+
+      .hero-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .tabs {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
-<div class="container">
-  <div class="logo">Study Group <span>Finder</span></div>
-  <div class="tagline">Find your people. Ace your units.</div>
-
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('login', event)">Log in</button>
-    <button class="tab" onclick="switchTab('register', event)">Register</button>
-  </div>
-
-  <!-- LOGIN PANEL -->
-  <div class="panel active" id="panel-login">
-    <div class="error" id="login-error"></div>
-    <div class="success" id="login-success"></div>
-    <div class="form-group">
-      <label>Email</label>
-      <input type="email" id="login-email" placeholder="you@usiu.ac.ke" />
+<div class="page-shell">
+  <aside class="hero-panel">
+    <div class="hero-badge">Campus collaboration made simple</div>
+    <h1>Find your next study crew in minutes.</h1>
+    <p>Study Group Finder helps you connect with classmates, share notes, and build momentum around the units that matter most.</p>
+    <ul class="feature-list">
+      <li>Discover classmates in your exact programme</li>
+      <li>Join focused groups for each unit and topic</li>
+      <li>Stay motivated with a community that understands your pace</li>
+    </ul>
+    <div class="hero-card">
+      <div>
+        <strong>Join smarter, not louder</strong>
+        <p>Meet the right people and make studying feel lighter.</p>
+      </div>
+      <span>⚡ Fast setup</span>
     </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="login-password" placeholder="Your password" />
-    </div>
-    <button class="btn" onclick="handleLogin()">Log in</button>
-  </div>
+  </aside>
 
-  <!-- REGISTER PANEL -->
-<div class="panel" id="panel-register">
-  <div class="error" id="register-error"></div>
-  <div class="success" id="register-success"></div>
-  <div class="form-group">
-    <label>Full name</label>
-    <input type="text" id="reg-name" placeholder="Ted Wanjihia" />
-  </div>
-  <div class="form-group">
-    <label>Email</label>
-    <input type="email" id="reg-email" placeholder="you@usiu.ac.ke" />
-  </div>
-  <div class="form-group">
-    <label>Programme</label>
-    <select id="reg-programme">
-      <option value="">Select your programme</option>
-      <option>Bachelor of Science in Computer Science</option>
-      <option>Bachelor of Science in Information Technology</option>
-      <option>Bachelor of Science in Electrical Engineering</option>
-      <option>Bachelor of Commerce</option>
-      <option>Bachelor of Arts in Communication</option>
-      <option>Bachelor of Science in Applied Statistics</option>
-      <option>Bachelor of Science in Actuarial Science</option>
-      <option>Bachelor of Laws (LLB)</option>
-      <option>Bachelor of Education</option>
-      <option>Bachelor of Arts in Counseling Psychology</option>
-    </select>
-  </div>
-  <div class="form-group">
-    <label>Year of study</label>
-    <select id="reg-year">
-      <option value="">Select year</option>
-      <option value="1">Year 1</option>
-      <option value="2">Year 2</option>
-      <option value="3">Year 3</option>
-      <option value="4">Year 4</option>
-    </select>
-  </div>
-  <div class="form-group">
-    <label>Course units enrolled in <span style="color:#888;font-weight:400">(select all that apply)</span></label>
-    <div id="units-checkboxes" style="border:1px solid #e0e0d8;border-radius:8px;padding:10px;max-height:160px;overflow-y:auto;background:white;">
-      <div style="color:#aaa;font-size:13px">Loading units...</div>
+  <div class="container">
+    <div class="logo">Study Group <span>Finder</span></div>
+    <div class="tagline">Find your people. Ace your units.</div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('login', event)">Log in</button>
+      <button class="tab" onclick="switchTab('register', event)">Register</button>
+    </div>
+
+    <!-- LOGIN PANEL -->
+    <div class="panel active" id="panel-login">
+      <div class="error" id="login-error"></div>
+      <div class="success" id="login-success"></div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@usiu.ac.ke" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="Your password" />
+      </div>
+      <button class="btn" onclick="handleLogin()">Log in</button>
+    </div>
+
+    <!-- REGISTER PANEL -->
+    <div class="panel" id="panel-register">
+      <div class="error" id="register-error"></div>
+      <div class="success" id="register-success"></div>
+      <div class="form-group">
+        <label>Full name</label>
+        <input type="text" id="reg-name" placeholder="Ted Wanjihia" />
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="you@usiu.ac.ke" />
+      </div>
+      <div class="form-group">
+        <label>Programme</label>
+        <select id="reg-programme">
+          <option value="">Select your programme</option>
+          <option>Bachelor of Science in Computer Science</option>
+          <option>Bachelor of Science in Information Technology</option>
+          <option>Bachelor of Science in Electrical Engineering</option>
+          <option>Bachelor of Commerce</option>
+          <option>Bachelor of Arts in Communication</option>
+          <option>Bachelor of Science in Applied Statistics</option>
+          <option>Bachelor of Science in Actuarial Science</option>
+          <option>Bachelor of Laws (LLB)</option>
+          <option>Bachelor of Education</option>
+          <option>Bachelor of Arts in Counseling Psychology</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Year of study</label>
+        <select id="reg-year">
+          <option value="">Select year</option>
+          <option value="1">Year 1</option>
+          <option value="2">Year 2</option>
+          <option value="3">Year 3</option>
+          <option value="4">Year 4</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Course units enrolled in <span class="hint-text">(select all that apply)</span></label>
+        <div id="units-checkboxes">
+          <div class="hint-text">Loading units...</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="reg-password" placeholder="Min 6 characters" />
+      </div>
+      <button class="btn" onclick="handleRegister()">Create account</button>
     </div>
   </div>
-  <div class="form-group">
-    <label>Password</label>
-    <input type="password" id="reg-password" placeholder="Min 6 characters" />
-  </div>
-  <button class="btn" onclick="handleRegister()">Create account</button>
 </div>
 
 <script>
@@ -134,12 +566,12 @@ async function loadUnitsForRegistration() {
     const data = await res.json();
     const container = document.getElementById('units-checkboxes');
     if (!data.units || data.units.length === 0) {
-      container.innerHTML = '<div style="color:#aaa;font-size:13px">No units available</div>';
+      container.innerHTML = '<div class="hint-text">No units available</div>';
       return;
     }
     container.innerHTML = data.units.map(u => `
-      <label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;cursor:pointer">
-        <input type="checkbox" value="${u.id}" style="width:auto;margin:0" />
+      <label class="unit-checkbox">
+        <input type="checkbox" value="${u.id}" />
         ${u.code} — ${u.name}
       </label>`).join('');
   } catch (err) {

@@ -5,41 +5,457 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — Study Group Finder</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #f5f5f0; }
-    .nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: white; border-bottom: 1px solid #e0e0d8; }
-    .logo { font-size: 16px; font-weight: 600; color: #1a1a1a; }
-    .logo span { color: #185fa5; }
-    .nav-links { display: flex; align-items: center; gap: 20px; }
-    .nav-link { font-size: 13px; color: #888; text-decoration: none; cursor: pointer; }
-    .nav-link.active { color: #185fa5; font-weight: 500; }
-    .avatar { width: 30px; height: 30px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #185fa5; cursor: pointer; }
-    .main { max-width: 860px; margin: 0 auto; padding: 28px 20px; }
-    .greeting { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
-    .sub { font-size: 13px; color: #888; margin-bottom: 24px; }
-    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; }
-    .stat { background: white; border-radius: 10px; padding: 16px; border: 1px solid #e0e0d8; }
-    .stat-label { font-size: 12px; color: #888; margin-bottom: 6px; }
-    .stat-val { font-size: 26px; font-weight: 600; color: #1a1a1a; }
-    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .section-title { font-size: 15px; font-weight: 600; color: #1a1a1a; }
-    .btn { padding: 8px 16px; background: #185fa5; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
-    .btn:hover { background: #0c447c; }
-    .btn-outline { padding: 8px 16px; background: white; color: #185fa5; border: 1px solid #185fa5; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
-    .groups { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 28px; }
-    .group-card { background: white; border: 1px solid #e0e0d8; border-radius: 12px; padding: 16px; }
-    .group-card:hover { border-color: #185fa5; }
-    .group-name { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
-    .group-unit { font-size: 12px; color: #185fa5; margin-bottom: 10px; }
-    .group-meta { display: flex; gap: 14px; font-size: 12px; color: #888; }
-    .empty { text-align: center; padding: 32px; background: white; border-radius: 12px; border: 1px solid #e0e0d8; color: #888; font-size: 14px; }
-    .notif-list { display: flex; flex-direction: column; gap: 8px; }
-    .notif { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; background: white; border: 1px solid #e0e0d8; border-radius: 10px; }
-    .notif-dot { width: 8px; height: 8px; border-radius: 50%; background: #185fa5; margin-top: 4px; flex-shrink: 0; }
-    .notif-dot.read { background: #e0e0d8; }
-    .notif-text { font-size: 13px; color: #1a1a1a; }
-    .notif-time { font-size: 11px; color: #aaa; margin-top: 3px; }
-    .logout { font-size: 13px; color: #e24b4a; cursor: pointer; background: none; border: none; }
+    :root {
+      --bg: #071120;
+      --surface: rgba(255,255,255,0.95);
+      --surface-soft: #f3f7ff;
+      --text: #11254d;
+      --muted: #5b6c88;
+      --accent: #3b82f6;
+      --accent-dark: #1d4ed8;
+      --border: rgba(15,23,42,0.12);
+      --shadow: 0 24px 70px rgba(2,8,23,0.16);
+      --danger: #dc2626;
+      --success: #10b981;
+    }
+
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,0.24), transparent 24%),
+        linear-gradient(135deg, #071120 0%, #11213f 42%, #21468f 100%);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: -1;
+      filter: blur(14px);
+      opacity: 0.7;
+    }
+
+    body::before {
+      width: 320px;
+      height: 320px;
+      top: -90px;
+      right: -80px;
+      background: radial-gradient(circle, rgba(59,130,246,0.25), transparent 72%);
+    }
+
+    body::after {
+      width: 280px;
+      height: 280px;
+      bottom: -70px;
+      left: -70px;
+      background: radial-gradient(circle, rgba(96,165,250,0.22), transparent 72%);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.5rem;
+      background: linear-gradient(90deg, rgba(8,16,31,0.97), rgba(17,34,62,0.95));
+      border-bottom: 1px solid rgba(255,255,255,0.16);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 35px rgba(2,8,23,0.16);
+    }
+
+    .logo {
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #f8fbff;
+    }
+
+    .logo span {
+      color: #8cc2ff;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      align-items: center;
+    }
+
+    .nav-link {
+      font-size: 0.95rem;
+      color: rgba(248,251,255,0.86);
+      text-decoration: none;
+      padding: 0.5rem 0.8rem;
+      border-radius: 999px;
+      transition: all 0.18s ease;
+    }
+
+    .nav-link.active,
+    .nav-link:hover {
+      background: rgba(255,255,255,0.16);
+      color: #ffffff;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #dbeafe;
+      background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(96,165,250,0.18));
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+
+    .main {
+      max-width: 1020px;
+      margin: 2rem auto;
+      padding: 0 1.5rem 2.5rem;
+    }
+
+    .hero-panel,
+    .card,
+    .stat {
+      animation: riseIn 0.45s ease both;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .hero-panel:hover,
+    .card:hover,
+    .stat:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 22px 50px rgba(2,8,23,0.14);
+    }
+
+    .hero-panel {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(255,255,255,0.95));
+      border: 1px solid rgba(59,130,246,0.16);
+      border-radius: 28px;
+      padding: 1.35rem 1.4rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.4rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .hero-panel::before,
+    .hero-panel::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: -1;
+      background: rgba(59,130,246,0.16);
+    }
+
+    .hero-panel::before {
+      width: 220px;
+      height: 220px;
+      top: -80px;
+      right: -70px;
+      filter: blur(10px);
+    }
+
+    .hero-panel::after {
+      width: 180px;
+      height: 180px;
+      bottom: -70px;
+      left: -60px;
+      filter: blur(10px);
+    }
+
+    .hero-pill {
+      display: inline-flex;
+      padding: 0.45rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(59,130,246,0.12);
+      color: var(--accent-dark);
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+
+    .greeting {
+      font-size: clamp(1.6rem, 2.1vw, 2.3rem);
+      font-weight: 800;
+      margin-bottom: 0.4rem;
+      line-height: 1.05;
+      color: var(--text);
+    }
+
+    .sub {
+      color: var(--muted);
+      max-width: 44rem;
+      line-height: 1.75;
+    }
+
+    .hero-badges {
+      display: flex;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-badges span {
+      padding: 0.7rem 0.85rem;
+      background: rgba(255,255,255,0.78);
+      border: 1px solid rgba(59,130,246,0.14);
+      color: var(--accent-dark);
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat {
+      background: var(--surface);
+      border-radius: 24px;
+      padding: 1.4rem;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 30px rgba(15,23,42,0.04);
+    }
+
+    .stat-label {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .stat-val {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .btn,
+    .btn-outline {
+      border-radius: 999px;
+      padding: 0.9rem 1.15rem;
+      border: 1px solid transparent;
+      font-size: 0.95rem;
+      font-weight: 700;
+      transition: all 0.18s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn:hover {
+      background: var(--accent-dark);
+    }
+
+    .btn-outline {
+      background: white;
+      color: var(--accent);
+      border-color: rgba(51,102,255,0.22);
+    }
+
+    .btn-outline:hover {
+      background: rgba(51,102,255,0.08);
+    }
+
+    .text-link {
+      color: #185fa5;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .text-link:hover {
+      text-decoration: underline;
+    }
+
+    .groups {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .group-card {
+      position: relative;
+      overflow: hidden;
+      background: var(--surface);
+      border-radius: 24px;
+      padding: 1.25rem;
+      border: 1px solid var(--border);
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      min-height: 170px;
+    }
+
+    .group-card::before {
+      content: '';
+      position: absolute;
+      inset: auto -20px -20px auto;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(59,130,246,0));
+      pointer-events: none;
+    }
+
+    .group-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(51,102,255,0.25);
+      box-shadow: 0 16px 35px rgba(15,23,42,0.08);
+    }
+
+    .card-arrow {
+      align-self: flex-start;
+      color: var(--accent-dark);
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .group-name {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .group-unit {
+      font-size: 0.92rem;
+      color: var(--accent);
+      margin-bottom: 0.9rem;
+    }
+
+    .group-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .empty {
+      background: rgba(255,255,255,0.9);
+      border: 1px dashed rgba(15,23,42,0.12);
+      border-radius: 22px;
+      padding: 1.7rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .notif-list {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .notif {
+      background: var(--surface);
+      padding: 1rem 1rem;
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      display: flex;
+      gap: 0.8rem;
+      align-items: flex-start;
+    }
+
+    .notif-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-top: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    .notif-dot.read {
+      background: rgba(15,23,42,0.12);
+    }
+
+    .notif-text {
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .notif-time {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+    }
+
+    @media (max-width: 860px) {
+      .main {
+        margin-top: 1rem;
+      }
+
+      .stats,
+      .groups {
+        grid-template-columns: 1fr;
+      }
+
+      .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
   </style>
 </head>
 <body>
@@ -59,8 +475,17 @@
 </nav>
 
 <div class="main">
-  <div class="greeting" id="greeting">Good day!</div>
-  <div class="sub" id="sub">Loading your dashboard...</div>
+  <div class="hero-panel">
+    <div>
+      <div class="hero-pill">Study hub</div>
+      <div class="greeting" id="greeting">Good day!</div>
+      <div class="sub" id="sub">Loading your dashboard...</div>
+    </div>
+    <div class="hero-badges">
+      <span>🎯 Focused learning</span>
+      <span>🤝 Built-in community</span>
+    </div>
+  </div>
 
   <div class="stats">
     <div class="stat"><div class="stat-label">My groups</div><div class="stat-val" id="stat-groups">—</div></div>
@@ -111,6 +536,10 @@
     return Math.floor(diff / 86400) + 'd ago';
   }
 
+  function openGroup(id) {
+    window.location.href = `group.html?id=${id}`;
+  }
+
   function getGreeting() {
     const h = new Date().getHours();
     if (h < 12) return 'Good morning';
@@ -126,28 +555,31 @@
     try {
       const headers = { 'Authorization': 'Bearer ' + token };
 
-      const [groupsRes, notifsRes] = await Promise.all([
+      const [groupsRes, notifsRes, unitsRes] = await Promise.all([
         fetch(`${API}/groups/my`, { headers }),
-        fetch(`${API}/notifications`, { headers })
+        fetch(`${API}/notifications`, { headers }),
+        fetch(`${API}/profile/units`, { headers })
       ]);
-      if (groupsRes.status === 401 || notifsRes.status === 401) return window.location.href = 'index.html';
+      if (groupsRes.status === 401 || notifsRes.status === 401 || unitsRes.status === 401) return window.location.href = 'index.html';
 
       const groupsData = await groupsRes.json();
       const notifsData = await notifsRes.json();
+      const unitsData = await unitsRes.json();
 
       const groups = groupsData.groups || [];
       const notifs = notifsData.notifications || [];
 
       document.getElementById('stat-groups').textContent = groups.length;
-      document.getElementById('stat-units').textContent = user.year_of_study || '—';
+      document.getElementById('stat-units').textContent = (unitsData.units || []).length || '—';
       document.getElementById('stat-notifs').textContent = notifs.filter(n => !n.is_read).length;
 
       const gc = document.getElementById('groups-container');
       if (groups.length === 0) {
-        gc.innerHTML = '<div class="empty">You have not joined any groups yet. <a href="browse.html" style="color:#185fa5">Browse groups</a></div>';
+        gc.innerHTML = '<div class="empty">You have not joined any groups yet. <a class="text-link" href="browse.html">Browse groups</a></div>';
       } else {
         gc.innerHTML = groups.map(g => `
-          <div class="group-card">
+          <div class="group-card" role="button" tabindex="0" onclick="openGroup(${g.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); openGroup(${g.id});}">
+            <div class="card-arrow">Open →</div>
             <div class="group-name">${g.name}</div>
             <div class="group-unit">${g.unit_code} — ${g.unit_name}</div>
             <div class="group-meta">

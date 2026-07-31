@@ -5,45 +5,429 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Panel — Study Group Finder</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #f5f5f0; }
-    .nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: white; border-bottom: 1px solid #e0e0d8; }
-    .logo { font-size: 16px; font-weight: 600; color: #1a1a1a; }
-    .logo span { color: #185fa5; }
-    .nav-links { display: flex; align-items: center; gap: 20px; }
-    .nav-link { font-size: 13px; color: #888; text-decoration: none; cursor: pointer; }
-    .avatar { width: 30px; height: 30px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #185fa5; }
-    .main { max-width: 900px; margin: 0 auto; padding: 28px 20px; }
-    .page-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
-    .page-sub { font-size: 13px; color: #888; margin-bottom: 24px; }
-    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
-    .stat { background: white; border-radius: 10px; padding: 16px; border: 1px solid #e0e0d8; }
-    .stat-label { font-size: 12px; color: #888; margin-bottom: 6px; }
-    .stat-val { font-size: 26px; font-weight: 600; color: #1a1a1a; }
-    .tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 1px solid #e0e0d8; }
-    .tab { padding: 10px 20px; font-size: 14px; cursor: pointer; color: #888; border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; border-top: none; border-left: none; border-right: none; }
-    .tab.active { color: #185fa5; border-bottom-color: #185fa5; font-weight: 500; }
-    .panel { display: none; }
-    .panel.active { display: block; }
-    table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e0e0d8; }
-    th { background: #f5f5f0; padding: 12px 16px; text-align: left; font-size: 12px; color: #888; font-weight: 500; border-bottom: 1px solid #e0e0d8; }
-    td { padding: 12px 16px; font-size: 13px; color: #1a1a1a; border-bottom: 1px solid #f0f0e8; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #fafaf8; }
-    .badge-admin { background: #e6f1fb; color: #185fa5; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
-    .badge-user { background: #f5f5f0; color: #888; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
-    .badge-active { background: #f0fff4; color: #276749; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
-    .badge-inactive { background: #fff0f0; color: #a32d2d; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
-    .btn-danger { background: none; border: 1px solid #e0e0d8; color: #a32d2d; border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
-    .btn-danger:hover { background: #fff0f0; border-color: #a32d2d; }
-    .empty { text-align: center; padding: 40px; background: white; border-radius: 12px; border: 1px solid #e0e0d8; color: #888; font-size: 14px; }
-    .access-denied { text-align: center; padding: 60px 20px; }
-    .access-denied h2 { font-size: 20px; color: #a32d2d; margin-bottom: 8px; }
-    .access-denied p { font-size: 14px; color: #888; }
-    .logout { font-size: 13px; color: #e24b4a; cursor: pointer; background: none; border: none; }
-    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: white; padding: 12px 20px; border-radius: 8px; font-size: 13px; display: none; z-index: 999; }
-    .toast.success { background: #276749; }
-    .toast.error { background: #a32d2d; }
+    :root {
+      --bg: #071120;
+      --surface: rgba(255,255,255,0.95);
+      --surface-soft: #f3f7ff;
+      --text: #11254d;
+      --muted: #5b6c88;
+      --accent: #3b82f6;
+      --accent-dark: #1d4ed8;
+      --border: rgba(15,23,42,0.12);
+      --shadow: 0 24px 70px rgba(2,8,23,0.16);
+      --danger: #dc2626;
+      --success: #10b981;
+    }
+
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,0.24), transparent 24%),
+        linear-gradient(135deg, #071120 0%, #11213f 42%, #21468f 100%);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      inset: auto;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: -1;
+      filter: blur(14px);
+      opacity: 0.7;
+    }
+
+    body::before {
+      width: 320px;
+      height: 320px;
+      top: -90px;
+      right: -80px;
+      background: radial-gradient(circle, rgba(59,130,246,0.25), transparent 72%);
+    }
+
+    body::after {
+      width: 280px;
+      height: 280px;
+      bottom: -70px;
+      left: -70px;
+      background: radial-gradient(circle, rgba(96,165,250,0.22), transparent 72%);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.5rem;
+      background: linear-gradient(90deg, rgba(8,16,31,0.97), rgba(17,34,62,0.95));
+      border-bottom: 1px solid rgba(255,255,255,0.16);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 35px rgba(2,8,23,0.16);
+    }
+
+    .logo {
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #f8fbff;
+    }
+
+    .logo span {
+      color: #8cc2ff;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      align-items: center;
+    }
+
+    .nav-link {
+      font-size: 0.95rem;
+      color: rgba(248,251,255,0.86);
+      text-decoration: none;
+      padding: 0.55rem 0.85rem;
+      border-radius: 999px;
+      transition: all 0.18s ease;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      background: rgba(255,255,255,0.16);
+      color: #ffffff;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #dbeafe;
+      background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(96,165,250,0.18));
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+
+    .logout {
+      border: none;
+      background: transparent;
+      color: #ffd9d9;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .main {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 0 1.5rem 2.5rem;
+    }
+
+    .admin-hero,
+    .stat,
+    table {
+      animation: riseIn 0.45s ease both;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .admin-hero:hover,
+    .stat:hover,
+    table:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 22px 50px rgba(2,8,23,0.14);
+    }
+
+    .admin-hero {
+      background: linear-gradient(135deg, rgba(59,130,246,0.16), rgba(255,255,255,0.95));
+      border: 1px solid rgba(59,130,246,0.16);
+      border-radius: 28px;
+      padding: 1.35rem 1.4rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-pill {
+      display: inline-flex;
+      padding: 0.45rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(59,130,246,0.12);
+      color: var(--accent-dark);
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+
+    .page-title {
+      font-size: clamp(1.8rem, 2.3vw, 2.6rem);
+      font-weight: 800;
+      margin-bottom: 0.45rem;
+      line-height: 1.05;
+    }
+
+    .page-sub {
+      color: var(--muted);
+      margin-bottom: 0;
+      max-width: 52rem;
+      line-height: 1.75;
+    }
+
+    .hero-badges {
+      display: flex;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-badges span {
+      padding: 0.65rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.8);
+      color: var(--accent-dark);
+      font-size: 0.9rem;
+      font-weight: 700;
+      border: 1px solid rgba(59,130,246,0.14);
+    }
+
+    .table-loading,
+    .table-empty {
+      text-align: center;
+      color: #888;
+      padding: 24px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+    }
+
+    .stat-label {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .stat-val {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .tab {
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.85rem 1.1rem;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.18s ease;
+      font-weight: 700;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: white;
+      border-color: rgba(51,102,255,0.3);
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--surface);
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    th,
+    td {
+      padding: 1rem 1.25rem;
+      font-size: 0.95rem;
+      text-align: left;
+    }
+
+    th {
+      background: rgba(51,102,255,0.05);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border-bottom: 1px solid rgba(15,23,42,0.08);
+    }
+
+    td {
+      color: var(--text);
+      border-bottom: 1px solid rgba(15,23,42,0.06);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(51,102,255,0.05);
+    }
+
+    .table-empty {
+      text-align: center;
+      color: #888;
+      padding: 24px;
+    }
+
+    .badge-admin,
+    .badge-user,
+    .badge-active,
+    .badge-inactive {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .badge-admin { background: #eff6ff; color: #1d4ed8; }
+    .badge-user { background: #f1f5f9; color: #64748b; }
+    .badge-active { background: #ecfdf5; color: #166534; }
+    .badge-inactive { background: #fef2f2; color: #991b1b; }
+
+    .btn-danger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #d64553;
+      color: #d64553;
+      background: white;
+      border-radius: 14px;
+      padding: 0.55rem 1rem;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.18s ease;
+    }
+
+    .btn-danger:hover {
+      background: rgba(214,69,83,0.08);
+    }
+
+    .empty,
+    .access-denied {
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(15,23,42,0.08);
+      border-radius: 24px;
+      padding: 2rem;
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.95rem;
+      box-shadow: 0 18px 40px rgba(15,23,42,0.08);
+    }
+
+    .access-denied h2 {
+      font-size: 1.25rem;
+      color: #b91c1c;
+      margin-bottom: 0.8rem;
+    }
+
+    .access-denied p {
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: rgba(15,23,42,0.96);
+      color: white;
+      padding: 1rem 1.25rem;
+      border-radius: 16px;
+      font-size: 0.95rem;
+      display: none;
+      box-shadow: 0 18px 40px rgba(15,23,42,0.18);
+      z-index: 999;
+    }
+
+    .toast.success { background: #1f7a5f; }
+    .toast.error { background: #d64553; }
+
+    @media (max-width: 840px) {
+      .main {
+        padding: 0 1rem 2rem;
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      th,
+      td {
+        padding: 0.85rem 0.9rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -54,15 +438,24 @@
     <a class="nav-link" href="profile.html">Profile</a>
     <a class="nav-link" href="dashboard.html">Dashboard</a>
     <a class="nav-link" href="browse.html">Browse groups</a>
-    <span class="nav-link" style="color:#185fa5;font-weight:500">Admin panel</span>
+    <span class="nav-link active">Admin panel</span>
     <div class="avatar" id="avatar">?</div>
     <button class="logout" onclick="logout()">Log out</button>
   </div>
 </nav>
 
 <div class="main" id="main-content">
-  <div class="page-title">Admin panel</div>
-  <div class="page-sub">Manage users and study groups.</div>
+  <div class="admin-hero">
+    <div>
+      <div class="hero-pill">Control center</div>
+      <div class="page-title">Admin panel</div>
+      <div class="page-sub">Manage users and study groups while keeping the community running smoothly.</div>
+    </div>
+    <div class="hero-badges">
+      <span>⚙️ Moderation</span>
+      <span>📈 Growth</span>
+    </div>
+  </div>
 
   <div class="stats">
     <div class="stat"><div class="stat-label">Total users</div><div class="stat-val" id="stat-users">—</div></div>
@@ -90,7 +483,7 @@
         </tr>
       </thead>
       <tbody id="users-body">
-        <tr><td colspan="7" style="text-align:center;color:#888;padding:24px">Loading users...</td></tr>
+        <tr><td colspan="7" class="table-loading">Loading users...</td></tr>
       </tbody>
     </table>
   </div>
@@ -109,7 +502,7 @@
         </tr>
       </thead>
       <tbody id="groups-body">
-        <tr><td colspan="7" style="text-align:center;color:#888;padding:24px">Loading groups...</td></tr>
+        <tr><td colspan="7" class="table-loading">Loading groups...</td></tr>
       </tbody>
     </table>
   </div>
@@ -178,7 +571,7 @@
       const data = await res.json();
       const tbody = document.getElementById('users-body');
       if (!data.users || data.users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;padding:24px">No users found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="table-empty">No users found.</td></tr>';
         return;
       }
       tbody.innerHTML = data.users.map(u => `
@@ -202,7 +595,7 @@
       const data = await res.json();
       const tbody = document.getElementById('groups-body');
       if (!data.groups || data.groups.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888;padding:24px">No groups found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="table-empty">No groups found.</td></tr>';
         return;
       }
       tbody.innerHTML = data.groups.map(g => `
