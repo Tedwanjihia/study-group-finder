@@ -95,12 +95,12 @@
     .hero-panel {
       position: relative;
       overflow: hidden;
-      padding: 2.3rem;
-      min-height: 570px;
-      border-radius: 32px;
-      background: linear-gradient(135deg, rgba(20,53,142,0.98), rgba(51,102,255,0.9));
+      padding: 2.4rem;
+      min-height: 580px;
+      border-radius: 36px;
+      background: linear-gradient(180deg, rgba(8,14,31,0.96), rgba(18,29,56,0.94));
       color: white;
-      box-shadow: var(--shadow);
+      box-shadow: 0 30px 90px rgba(0,0,0,0.24);
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -111,53 +111,54 @@
       content: '';
       position: absolute;
       border-radius: 50%;
-      background: rgba(255,255,255,0.13);
+      background: rgba(255,255,255,0.08);
       pointer-events: none;
     }
 
     .hero-panel::before {
       width: 220px;
       height: 220px;
-      top: -60px;
-      right: -40px;
-      filter: blur(8px);
+      top: -90px;
+      right: -70px;
+      filter: blur(18px);
     }
 
     .hero-panel::after {
-      width: 180px;
-      height: 180px;
-      bottom: -50px;
-      left: -30px;
-      filter: blur(8px);
+      width: 260px;
+      height: 260px;
+      bottom: -80px;
+      left: -60px;
+      filter: blur(20px);
     }
 
     .hero-badge {
       display: inline-flex;
       width: max-content;
-      padding: 0.55rem 0.9rem;
+      padding: 0.6rem 1rem;
       margin-bottom: 1rem;
       border-radius: 999px;
-      font-size: 0.74rem;
+      font-size: 0.78rem;
       font-weight: 700;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      background: rgba(255,255,255,0.16);
-      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.95);
     }
 
     .hero-panel h1 {
-      font-size: clamp(1.9rem, 2.7vw, 2.7rem);
-      line-height: 1.1;
+      font-size: clamp(2.2rem, 3.2vw, 3.4rem);
+      line-height: 1.05;
       margin-bottom: 1rem;
-      max-width: 22rem;
+      max-width: 24rem;
     }
 
     .hero-panel p {
-      font-size: 1rem;
-      line-height: 1.7;
-      color: rgba(255,255,255,0.9);
-      max-width: 31rem;
-      margin-bottom: 1.2rem;
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: rgba(255,255,255,0.88);
+      max-width: 34rem;
+      margin-bottom: 1.25rem;
     }
 
     .feature-list {

@@ -20,8 +20,12 @@ html,body { height:100%; }
 body {
   margin:0;
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  background: linear-gradient(180deg, #0b1530 0%, #071120 60%);
-  color: var(--surface); /* light text on the dark page background */
+  background:
+    radial-gradient(circle at 12% 10%, rgba(255,255,255,0.08), transparent 20%),
+    radial-gradient(circle at 88% 16%, rgba(59,130,246,0.08), transparent 16%),
+    linear-gradient(180deg, #101f33 0%, #091123 45%, #06080e 100%);
+  color: var(--surface);
+  min-height:100%;
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
 }
@@ -36,8 +40,14 @@ body {
 .nav .nav-link.active { color: var(--accent); }
 
 /* Headings and text */
-h1, h2, h3, .page-title { color: var(--text); }
-p, label, .muted { color: var(--muted); }
+h1, h2, h3, .page-title, .hero-pill, .section-title {
+  color: var(--surface);
+}
+.page-sub,
+p, label, .muted {
+  color: rgba(255,255,255,0.88);
+}
+.page-sub { font-size: 1rem; line-height: 1.7; }
 
 /* Form accessibility */
 .input, .search-input, .filter-select { color: var(--text); background: var(--surface-soft); border:1px solid var(--border); }
@@ -52,12 +62,14 @@ p, label, .muted { color: var(--muted); }
 .kicker, .badge, .results-count { color: var(--muted); }
 
 /* Hero */
-.hero {
-  display:flex; align-items:center; gap:28px; padding:36px; border-radius:16px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
-  box-shadow: var(--shadow);
+.hero, .feed-hero {
+  display:flex; flex-direction:column; gap:16px; padding:34px; border-radius:22px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.18);
 }
-.hero .title { font-size:28px; font-weight:700; color:var(--surface); }
+.hero .title, .feed-hero .page-title { font-size:32px; font-weight:800; color:var(--surface); }
+.hero .subtext, .feed-hero .page-sub { max-width:760px; color: rgba(255,255,255,0.85); line-height:1.6; }
 
 /* Card / glass surface */
 .card {
