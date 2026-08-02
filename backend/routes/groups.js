@@ -2,6 +2,33 @@ const express = require('express');
 const pool = require('../models/db');
 const auth = require('../middleware/authMiddleware');
 
+router.get('/suggested', auth, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT sg.*, cu.code as unit_code, cu.name as unit_name,
+        COUNT(gm.user_id) as member_count
+      FROM study_groups sg
+      JOIN course_units cu ON cu.id = sg.unit_id
+      LEFT JOIN group_members gm ON gm.group_id = sg.id
+      WHERE sg.is_active = true
+        AND sg.unit_id IN (
+          SELECT unit_id FROM user_units WHERE user_id = $1
+        )
+        AND sg.id NOT IN (
+          SELECT group_id FROM group_members WHERE user_id = $1
+        )
+      GROUP BY sg.id, cu.code, cu.name
+      HAVING COUNT(gm.user_id) < sg.max_members
+      ORDER BY sg.created_at DESC
+      LIMIT 4
+    `, [req.user.id]);
+    res.json({ groups: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
 module.exports = function(io) {
   const router = express.Router();
 

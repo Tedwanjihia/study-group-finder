@@ -493,6 +493,13 @@
     <div class="stat"><div class="stat-label">Notifications</div><div class="stat-val" id="stat-notifs">—</div></div>
   </div>
 
+
+  <div class="section-header" id="suggestions-header" style="display:none">
+  <span class="section-title">Suggested for you</span>
+  <span style="font-size:12px;color:#888">Based on your enrolled units</span>
+</div>
+<div class="groups" id="suggestions-container" style="margin-bottom:28px"></div>
+
   <div class="section-header">
     <span class="section-title">Your study groups</span>
     <a class="btn-outline" href="browse.html">Browse all groups</a>
@@ -546,6 +553,39 @@
     if (h < 17) return 'Good afternoon';
     return 'Good evening';
   }
+
+  async function loadSuggestions() {
+  try {
+    const res = await fetch(`${API}/groups/suggested`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    const groups = data.groups || [];
+
+    if (groups.length === 0) return;
+
+    document.getElementById('suggestions-header').style.display = 'flex';
+    const sc = document.getElementById('suggestions-container');
+    sc.innerHTML = groups.map(g => `
+      <div class="group-card" onclick="window.location.href='group.html?id=${g.id}'" style="cursor:pointer">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <div class="group-name">${g.name}</div>
+            <span style="background:#fff8e6;color:#b45309;font-size:11px;padding:2px 8px;border-radius:20px">Match</span>
+          </div>
+          <div class="group-unit">${g.unit_code} — ${g.unit_name}</div>
+          <div class="group-meta">
+            <span>👥 ${parseInt(g.member_count)} / ${g.max_members}</span>
+            <span>📅 ${g.schedule || 'TBD'}</span>
+            <span>📍 ${g.venue || 'TBD'}</span>
+          </div>
+        </div>
+        <a href="group.html?id=${g.id}" class="btn-outline" style="padding:7px 14px;font-size:13px;color:#185fa5;border:1px solid #185fa5;border-radius:8px;text-decoration:none;white-space:nowrap">View group</a>
+      </div>`).join('');
+  } catch (err) {
+    console.error('Suggestions error:', err);
+  }
+}
 
   async function loadDashboard() {
     document.getElementById('greeting').textContent = getGreeting() + ', ' + user.name.split(' ')[0] + '!';
@@ -610,6 +650,7 @@
   }
 
   loadDashboard();
+  loadSuggestions();
 </script>
 </body>
 </html>
