@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find People — Study Group Finder</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f0; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: white; border-bottom: 1px solid #e0e0d8; }
+    .logo { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+    .logo span { color: #185fa5; }
+    .nav-links { display: flex; align-items: center; gap: 20px; }
+    .nav-link { font-size: 13px; color: #888; text-decoration: none; cursor: pointer; }
+    .nav-link.active { color: #185fa5; font-weight: 500; }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #185fa5; }
+    .main { max-width: 720px; margin: 0 auto; padding: 28px 20px; }
+    .page-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+    .page-sub { font-size: 13px; color: #888; margin-bottom: 24px; }
+    .search-bar { display: flex; gap: 10px; margin-bottom: 16px; }
+    .search-input { flex: 1; padding: 10px 14px; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 14px; outline: none; background: white; }
+    .search-input:focus { border-color: #185fa5; }
+    .filter-select { padding: 10px 12px; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 13px; background: white; outline: none; cursor: pointer; }
+    .filter-select:focus { border-color: #185fa5; }
+    .btn-search { padding: 10px 20px; background: #185fa5; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+    .btn-search:hover { background: #0c447c; }
+    .results { display: flex; flex-direction: column; gap: 10px; }
+    .person-card { display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid #e0e0d8; border-radius: 12px; padding: 16px; }
+    .person-card:hover { border-color: #185fa5; }
+    .person-left { display: flex; align-items: center; gap: 14px; }
+    .person-avatar { width: 44px; height: 44px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; color: #185fa5; flex-shrink: 0; }
+    .person-name { font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 3px; }
+    .person-info { font-size: 12px; color: #888; margin-bottom: 4px; }
+    .person-units { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .unit-tag { background: #e6f1fb; color: #185fa5; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+    .shared-tag { background: #f0fff4; color: #276749; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+    .empty { text-align: center; padding: 48px; background: white; border-radius: 12px; border: 1px solid #e0e0d8; color: #888; font-size: 14px; }
+    .hint { text-align: center; padding: 48px; color: #aaa; font-size: 14px; }
+    .logout { font-size: 13px; color: #e24b4a; cursor: pointer; background: none; border: none; }
+    .results-count { font-size: 13px; color: #888; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">Study Group <span>Finder</span></div>
+  <div class="nav-links">
+    <a class="nav-link" href="dashboard.html">Dashboard</a>
+    <a class="nav-link" href="browse.html">Browse groups</a>
+    <span class="nav-link active">Find people</span>
+    <a class="nav-link" href="notifications.html">Notifications</a>
+    <a class="nav-link" href="profile.html">Profile</a>
+    <div class="avatar" id="avatar">?</div>
+    <button class="logout" onclick="logout()">Log out</button>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-title">Find People</div>
+  <div class="page-sub">Search for students by name or course unit.</div>
+
+  <div class="search-bar">
+    <input class="search-input" id="search-input" placeholder="Search by name..." onkeydown="if(event.key==='Enter') search()" />
+    <select class="filter-select" id="unit-filter">
+      <option value="">All units</option>
+    </select>
+    <button class="btn-search" onclick="search()">Search</button>
+  </div>
+
+  <div id="results-count" class="results-count" style="display:none"></div>
+  <div class="results" id="results">
+    <div class="hint">Search by name or filter by unit to find students.</div>
+  </div>
+</div>
+
+<script>
+  const API = 'https://study-group-finder-api.onrender.com';
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+  if (!token || !user) window.location.href = 'index.html';
+
+  document.getElementById('avatar').textContent = user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+  function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = 'index.html';
+  }
+
+  function getInitials(name) {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  }
+
+  async function loadUnits() {
+    try {
+      const res = await fetch(`${API}/units/all`);
+      const data = await res.json();
+      const sel = document.getElementById('unit-filter');
+      (data.units || []).forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.code;
+        opt.textContent = u.code;
+        sel.appendChild(opt);
+      });
+    } catch (err) { console.error(err); }
+  }
+
+  async function search() {
+    const query = document.getElementById('search-input').value.trim();
+    const unit = document.getElementById('unit-filter').value;
+
+    if (!query && !unit) {
+      document.getElementById('results').innerHTML = '<div class="hint">Enter a name or select a unit to search.</div>';
+      document.getElementById('results-count').style.display = 'none';
+      return;
+    }
+
+    document.getElementById('results').innerHTML = '<div class="hint">Searching...</div>';
+
+    try {
+      const params = new URLSearchParams();
+      if (query) params.append('q', query);
+      if (unit) params.append('unit', unit);
+
+      const res = await fetch(`${API}/people/search?${params}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      const people = data.people || [];
+
+      const countEl = document.getElementById('results-count');
+      countEl.style.display = 'block';
+      countEl.textContent = people.length === 0 ? 'No students found.' : `${people.length} student${people.length === 1 ? '' : 's'} found`;
+
+      if (people.length === 0) {
+        document.getElementById('results').innerHTML = '<div class="empty">No students found matching your search.</div>';
+        return;
+      }
+
+      document.getElementById('results').innerHTML = people.map(p => {
+        const units = p.units || [];
+        const sharedUnits = p.shared_units || [];
+        return `
+          <div class="person-card">
+            <div class="person-left">
+              <div class="person-avatar">${getInitials(p.name)}</div>
+              <div>
+                <div class="person-name">${p.name}</div>
+                <div class="person-info">${p.programme || 'USIU-Africa'} · Year ${p.year_of_study || '—'}</div>
+                <div class="person-units">
+                  ${sharedUnits.map(u => `<span class="shared-tag">✓ ${u}</span>`).join('')}
+                  ${units.filter(u => !sharedUnits.includes(u)).map(u => `<span class="unit-tag">${u}</span>`).join('')}
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    } catch (err) {
+      console.error(err);
+      document.getElementById('results').innerHTML = '<div class="empty">Failed to search. Please try again.</div>';
+    }
+  }
+
+  loadUnits();
+</script>
+</body>
+</html>
