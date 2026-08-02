@@ -7,12 +7,12 @@
   <link rel="stylesheet" href="styles.css">
   <style>
     * { box-sizing: border-box; }
-    .nav { display:flex; align-items:center; justify-content:space-between; padding:18px 24px; color:var(--surface); }
-    .logo { font-size:18px; font-weight:700; color:var(--surface); }
+    .nav { display:flex; align-items:center; justify-content:space-between; padding:18px 24px; color:var(--text); background: rgba(255,255,255,0.92); border:1px solid rgba(184,118,65,0.14); border-radius:24px; box-shadow: 0 18px 45px rgba(147,101,71,0.1); }
+    .logo { font-size:18px; font-weight:700; color:var(--text); }
     .logo span { color:var(--accent); }
     .nav-links { display:flex; gap:16px; align-items:center; }
-    .nav-link { font-size:13px; color:var(--surface-soft); text-decoration:none; opacity:0.95; }
-    .nav-link.active { color:var(--accent); font-weight:600; }
+    .nav-link { font-size:13px; color:var(--muted); text-decoration:none; opacity:0.95; }
+    .nav-link.active { color:var(--accent-dark); font-weight:600; }
     .avatar { width:36px; height:36px; border-radius:999px; background:linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,0.85)); color:var(--accent-dark); display:flex; align-items:center; justify-content:center; font-weight:700; }
 
     .main { max-width:1100px; margin:28px auto; padding:18px; }
@@ -31,7 +31,7 @@
     .person-name { font-size:16px; font-weight:700; color:var(--text); }
     .person-info { font-size:13px; color:var(--muted); }
     .person-units { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
-    .unit-tag { background:transparent; color:var(--accent); border:1px solid rgba(59,130,246,0.12); padding:6px 8px; border-radius:999px; font-weight:600; }
+    .unit-tag { background:transparent; color:var(--accent); border:1px solid rgba(245,158,11,0.18); padding:6px 8px; border-radius:999px; font-weight:600; }
     .shared-tag { background:transparent; color:var(--success); border:1px solid rgba(16,185,129,0.08); padding:6px 8px; border-radius:999px; font-weight:700; }
 
     .empty, .hint { text-align:center; padding:36px; border-radius:12px; background:var(--surface); color:var(--muted); border:1px solid var(--border); }
