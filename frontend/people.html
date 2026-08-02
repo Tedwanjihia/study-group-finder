@@ -4,40 +4,40 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Find People — Study Group Finder</title>
+  <link rel="stylesheet" href="styles.css">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #f5f5f0; }
-    .nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: white; border-bottom: 1px solid #e0e0d8; }
-    .logo { font-size: 16px; font-weight: 600; color: #1a1a1a; }
-    .logo span { color: #185fa5; }
-    .nav-links { display: flex; align-items: center; gap: 20px; }
-    .nav-link { font-size: 13px; color: #888; text-decoration: none; cursor: pointer; }
-    .nav-link.active { color: #185fa5; font-weight: 500; }
-    .avatar { width: 30px; height: 30px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #185fa5; }
-    .main { max-width: 720px; margin: 0 auto; padding: 28px 20px; }
-    .page-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
-    .page-sub { font-size: 13px; color: #888; margin-bottom: 24px; }
-    .search-bar { display: flex; gap: 10px; margin-bottom: 16px; }
-    .search-input { flex: 1; padding: 10px 14px; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 14px; outline: none; background: white; }
-    .search-input:focus { border-color: #185fa5; }
-    .filter-select { padding: 10px 12px; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 13px; background: white; outline: none; cursor: pointer; }
-    .filter-select:focus { border-color: #185fa5; }
-    .btn-search { padding: 10px 20px; background: #185fa5; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; }
-    .btn-search:hover { background: #0c447c; }
-    .results { display: flex; flex-direction: column; gap: 10px; }
-    .person-card { display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid #e0e0d8; border-radius: 12px; padding: 16px; }
-    .person-card:hover { border-color: #185fa5; }
-    .person-left { display: flex; align-items: center; gap: 14px; }
-    .person-avatar { width: 44px; height: 44px; border-radius: 50%; background: #e6f1fb; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; color: #185fa5; flex-shrink: 0; }
-    .person-name { font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 3px; }
-    .person-info { font-size: 12px; color: #888; margin-bottom: 4px; }
-    .person-units { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-    .unit-tag { background: #e6f1fb; color: #185fa5; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
-    .shared-tag { background: #f0fff4; color: #276749; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
-    .empty { text-align: center; padding: 48px; background: white; border-radius: 12px; border: 1px solid #e0e0d8; color: #888; font-size: 14px; }
-    .hint { text-align: center; padding: 48px; color: #aaa; font-size: 14px; }
-    .logout { font-size: 13px; color: #e24b4a; cursor: pointer; background: none; border: none; }
-    .results-count { font-size: 13px; color: #888; margin-bottom: 12px; }
+    * { box-sizing: border-box; }
+    .nav { display:flex; align-items:center; justify-content:space-between; padding:18px 24px; color:var(--surface); }
+    .logo { font-size:18px; font-weight:700; color:var(--surface); }
+    .logo span { color:var(--accent); }
+    .nav-links { display:flex; gap:16px; align-items:center; }
+    .nav-link { font-size:13px; color:var(--surface-soft); text-decoration:none; opacity:0.95; }
+    .nav-link.active { color:var(--accent); font-weight:600; }
+    .avatar { width:36px; height:36px; border-radius:999px; background:linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,0.85)); color:var(--accent-dark); display:flex; align-items:center; justify-content:center; font-weight:700; }
+
+    .main { max-width:1100px; margin:28px auto; padding:18px; }
+    .page-title { font-size:22px; font-weight:700; color:var(--surface); }
+    .page-sub { font-size:14px; color:var(--muted); margin-top:6px; }
+
+    .search-card { display:flex; gap:12px; align-items:center; padding:14px; border-radius:12px; background:var(--surface); box-shadow:var(--shadow); border:1px solid var(--border); margin:18px 0; }
+    .search-input { flex:1; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--surface-soft); color:var(--text); }
+    .filter-select { padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface-soft); color:var(--text); }
+    .btn-search { padding:10px 14px; border-radius:10px; border:0; background:linear-gradient(90deg,var(--accent),var(--accent-dark)); color:white; font-weight:600; cursor:pointer; }
+
+    .results { display:flex; flex-direction:column; gap:12px; }
+    .person-card { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px; border-radius:12px; background:var(--surface); border:1px solid var(--border); box-shadow:0 12px 30px rgba(2,8,23,0.06); }
+    .person-left { display:flex; align-items:center; gap:12px; }
+    .person-avatar { width:52px; height:52px; border-radius:999px; background:linear-gradient(180deg,var(--surface-soft), rgba(255,255,255,0.95)); color:var(--accent-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; }
+    .person-name { font-size:16px; font-weight:700; color:var(--text); }
+    .person-info { font-size:13px; color:var(--muted); }
+    .person-units { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+    .unit-tag { background:transparent; color:var(--accent); border:1px solid rgba(59,130,246,0.12); padding:6px 8px; border-radius:999px; font-weight:600; }
+    .shared-tag { background:transparent; color:var(--success); border:1px solid rgba(16,185,129,0.08); padding:6px 8px; border-radius:999px; font-weight:700; }
+
+    .empty, .hint { text-align:center; padding:36px; border-radius:12px; background:var(--surface); color:var(--muted); border:1px solid var(--border); }
+    .results-count { font-size:13px; color:var(--muted); margin-bottom:8px; }
+
+    @media (max-width:900px){ .nav { padding:12px; } .main{ padding:12px } .person-avatar{ width:44px;height:44px } }
   </style>
 </head>
 <body>
