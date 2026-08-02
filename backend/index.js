@@ -12,7 +12,16 @@ const peopleRoutes = require('./routes/people');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://study-group-finder-theta-three.vercel.app',
+    'https://study-group-finder.netlify.app',
+    'http://localhost:5500',
+    'http://127.0.0.1:5500'
+  ],
+  credentials: true
+}));
+
 app.use(express.json());
 
 app.use('/auth', authRoutes);
