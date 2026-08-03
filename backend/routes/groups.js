@@ -44,19 +44,26 @@ router.get('/suggested', auth, async (req, res) => {
 
 router.get('/my', auth, async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT sg.*, cu.code AS unit_code, cu.name AS unit_name,
-        COUNT(DISTINCT gm2.user_id) AS member_count
+    const result = await pool.query(`
+      SELECT sg.id, sg.name, sg.unit_id, sg.creator_id, sg.max_members, 
+             sg.schedule, sg.venue, sg.is_active, sg.created_at,
+             cu.code as unit_code, cu.name as unit_name
       FROM study_groups sg
       JOIN course_units cu ON cu.id = sg.unit_id
-      JOIN group_members gm ON gm.group_id = sg.id AND gm.user_id = $1 AND gm.status = 'approved'
-      LEFT JOIN group_members gm2 ON gm2.group_id = sg.id
-      WHERE sg.is_active = true
-      GROUP BY sg.id, cu.code, cu.name
-      ORDER BY sg.created_at DESC`,
-      [req.user.id]
-    );
-    res.json({ groups: result.rows });
+      JOIN group_members gm ON gm.group_id = sg.id 
+      WHERE gm.user_id = $1 AND gm.status = 'approved' AND sg.is_active = true
+      ORDER BY sg.created_at DESC
+    `, [req.user.id]);
+
+    const groups = await Promise.all(result.rows.map(async (g) => {
+      const countRes = await pool.query(
+        "SELECT COUNT(*) FROM group_members WHERE group_id = $1 AND status = 'approved'",
+        [g.id]
+      );
+      return { ...g, member_count: countRes.rows[0].count };
+    }));
+
+    res.json({ groups });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error.' });
