@@ -29,6 +29,22 @@ app.get('/test-db', require('./middleware/authMiddleware'), async (req, res) => 
   }
 });
 
+app.get('/test-groups', require('./middleware/authMiddleware'), async (req, res) => {
+  const pool = require('./models/db');
+  try {
+    const result = await pool.query(`
+      SELECT sg.id, sg.name, cu.code as unit_code
+      FROM study_groups sg
+      JOIN course_units cu ON cu.id = sg.unit_id
+      WHERE sg.is_active = true
+      LIMIT 5
+    `);
+    res.json({ groups: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use('/auth', authRoutes);
 app.use('/groups', groupRoutes);
 app.use('/notifications', notifRoutes);
