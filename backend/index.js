@@ -19,6 +19,16 @@ app.get('/test-auth', require('./middleware/authMiddleware'), (req, res) => {
   res.json({ message: 'Auth works', user: req.user });
 });
 
+app.get('/test-db', require('./middleware/authMiddleware'), async (req, res) => {
+  const pool = require('./models/db');
+  try {
+    const result = await pool.query('SELECT id, name FROM study_groups LIMIT 3');
+    res.json({ groups: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use('/auth', authRoutes);
 app.use('/groups', groupRoutes);
 app.use('/notifications', notifRoutes);
