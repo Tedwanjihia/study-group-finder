@@ -509,14 +509,13 @@
 
   document.getElementById('avatar').textContent = user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
-  if (!user.is_admin) {
-    document.getElementById('main-content').innerHTML = `
-      <div class="access-denied">
-        <h2>Access denied</h2>
-        <p>You need admin privileges to view this page.</p>
-      </div>`;
-    return;
-  }
+ if (!user.is_admin) {
+  document.getElementById('main-content').innerHTML = `
+    <div class="access-denied">
+      <h2>Access denied</h2>
+      <p>You need admin privileges to view this page.</p>
+    </div>`;
+}
 
   function logout() {
     localStorage.removeItem('token');
