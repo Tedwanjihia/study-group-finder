@@ -347,6 +347,4 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-module.exports = function (io) {
-  return router;
-};
+module.exports = router;
